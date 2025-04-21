@@ -136,7 +136,7 @@ export default function CalendarTab() {
                         >
                           <div className="truncate">{transaction.description}</div>
                           <div className="font-medium">
-                            {transaction.type === "expense" ? "-" : "+"}${Math.abs(transaction.amount).toFixed(2)}
+                            {transaction.type === "expense" ? "-" : "+"}₹{Math.abs(transaction.amount).toFixed(2)}
                           </div>
                         </div>
                       ))}
@@ -151,4 +151,3 @@ export default function CalendarTab() {
     </div>
   )
 }
-

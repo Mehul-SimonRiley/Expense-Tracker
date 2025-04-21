@@ -273,22 +273,22 @@ export default function SettingsTab() {
                   <div className="form-group">
                     <label className="form-label">Primary Currency</label>
                     <select className="form-select">
+                      <option>INR - Indian Rupee</option>
                       <option>USD - US Dollar</option>
                       <option>EUR - Euro</option>
                       <option>GBP - British Pound</option>
                       <option>JPY - Japanese Yen</option>
                       <option>CAD - Canadian Dollar</option>
                       <option>AUD - Australian Dollar</option>
-                      <option>INR - Indian Rupee</option>
                     </select>
                   </div>
                   <div className="form-group">
                     <label className="form-label">Currency Display</label>
                     <select className="form-select">
-                      <option>$1,234.56</option>
-                      <option>1,234.56 $</option>
-                      <option>$ 1,234.56</option>
-                      <option>1,234.56 USD</option>
+                      <option>₹1,234.56</option>
+                      <option>1,234.56 ₹</option>
+                      <option>₹ 1,234.56</option>
+                      <option>1,234.56 INR</option>
                     </select>
                   </div>
                   <div className="form-group">
@@ -369,4 +369,3 @@ export default function SettingsTab() {
     </div>
   )
 }
-

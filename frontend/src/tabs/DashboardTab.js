@@ -36,21 +36,21 @@ export default function DashboardTab() {
         <div className="card">
           <div className="card-content">
             <div className="text-sm text-muted mb-4">Total Expenses</div>
-            <div className="text-2xl font-bold text-expense">$2,845.65</div>
+            <div className="text-2xl font-bold text-expense">₹2,845.65</div>
             <p className="text-xs text-muted">+12.3% from last month</p>
           </div>
         </div>
         <div className="card">
           <div className="card-content">
             <div className="text-sm text-muted mb-4">Total Income</div>
-            <div className="text-2xl font-bold text-income">$4,350.00</div>
+            <div className="text-2xl font-bold text-income">₹4,350.00</div>
             <p className="text-xs text-muted">Same as last month</p>
           </div>
         </div>
         <div className="card">
           <div className="card-content">
             <div className="text-sm text-muted mb-4">Current Balance</div>
-            <div className="text-2xl font-bold">$1,504.35</div>
+            <div className="text-2xl font-bold">₹1,504.35</div>
             <p className="text-xs text-muted">-8.4% from last month</p>
           </div>
         </div>
@@ -58,7 +58,7 @@ export default function DashboardTab() {
           <div className="card-content">
             <div className="text-sm text-muted mb-4">Savings</div>
             <div className="text-2xl font-bold" style={{ color: "var(--savings-color)" }}>
-              $573.00
+              ₹573.00
             </div>
             <p className="text-xs text-muted">13.2% of income</p>
           </div>
@@ -107,7 +107,7 @@ export default function DashboardTab() {
               <div>
                 <div className="flex justify-between mb-2">
                   <span className="text-sm font-medium">Groceries</span>
-                  <span className="text-sm font-medium">$350/$500</span>
+                  <span className="text-sm font-medium">₹350/₹500</span>
                 </div>
                 <div
                   style={{
@@ -130,7 +130,7 @@ export default function DashboardTab() {
               <div>
                 <div className="flex justify-between mb-2">
                   <span className="text-sm font-medium">Dining Out</span>
-                  <span className="text-sm font-medium">$280/$300</span>
+                  <span className="text-sm font-medium">₹280/₹300</span>
                 </div>
                 <div
                   style={{
@@ -153,7 +153,7 @@ export default function DashboardTab() {
               <div>
                 <div className="flex justify-between mb-2">
                   <span className="text-sm font-medium">Transportation</span>
-                  <span className="text-sm font-medium">$120/$200</span>
+                  <span className="text-sm font-medium">₹120/₹200</span>
                 </div>
                 <div
                   style={{
@@ -176,7 +176,7 @@ export default function DashboardTab() {
               <div>
                 <div className="flex justify-between mb-2">
                   <span className="text-sm font-medium">Entertainment</span>
-                  <span className="text-sm font-medium">$175/$150</span>
+                  <span className="text-sm font-medium">₹175/₹150</span>
                 </div>
                 <div
                   style={{
@@ -218,7 +218,7 @@ export default function DashboardTab() {
                   <p className="text-sm font-medium">Grocery Store</p>
                   <p className="text-xs text-muted">Mar 18, 2025 • Food</p>
                 </div>
-                <div className="text-expense font-medium">-$86.42</div>
+                <div className="text-expense font-medium">-₹86.42</div>
               </div>
               <div className="flex items-center gap-4">
                 <div style={{ borderRadius: "9999px", backgroundColor: "rgba(16, 185, 129, 0.1)", padding: "0.5rem" }}>
@@ -228,7 +228,7 @@ export default function DashboardTab() {
                   <p className="text-sm font-medium">Salary Deposit</p>
                   <p className="text-xs text-muted">Mar 15, 2025 • Income</p>
                 </div>
-                <div className="text-income font-medium">+$2,175.00</div>
+                <div className="text-income font-medium">+₹2,175.00</div>
               </div>
               <div className="flex items-center gap-4">
                 <div style={{ borderRadius: "9999px", backgroundColor: "rgba(239, 68, 68, 0.1)", padding: "0.5rem" }}>
@@ -238,7 +238,7 @@ export default function DashboardTab() {
                   <p className="text-sm font-medium">Restaurant</p>
                   <p className="text-xs text-muted">Mar 14, 2025 • Dining</p>
                 </div>
-                <div className="text-expense font-medium">-$42.50</div>
+                <div className="text-expense font-medium">-₹42.50</div>
               </div>
             </div>
           </div>
@@ -325,4 +325,3 @@ export default function DashboardTab() {
     </div>
   )
 }
-

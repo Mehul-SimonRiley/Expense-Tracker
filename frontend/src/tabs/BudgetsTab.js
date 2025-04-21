@@ -47,19 +47,19 @@ export default function BudgetsTab() {
         <div className="card">
           <div className="card-content">
             <div className="text-sm text-muted mb-2">Total Budget</div>
-            <div className="text-xl font-bold">$3,500.00</div>
+            <div className="text-xl font-bold">₹3,500.00</div>
           </div>
         </div>
         <div className="card">
           <div className="card-content">
             <div className="text-sm text-muted mb-2">Total Spent</div>
-            <div className="text-xl font-bold text-expense">$2,650.00</div>
+            <div className="text-xl font-bold text-expense">₹2,650.00</div>
           </div>
         </div>
         <div className="card">
           <div className="card-content">
             <div className="text-sm text-muted mb-2">Remaining</div>
-            <div className="text-xl font-bold text-income">$850.00</div>
+            <div className="text-xl font-bold text-income">₹850.00</div>
           </div>
         </div>
       </div>
@@ -85,8 +85,8 @@ export default function BudgetsTab() {
             ></div>
           </div>
           <div className="flex justify-between text-sm text-muted">
-            <div>$0</div>
-            <div>$3,500</div>
+            <div>₹0</div>
+            <div>₹3,500</div>
           </div>
         </div>
       </div>
@@ -112,9 +112,9 @@ export default function BudgetsTab() {
               {budgets.map((budget, index) => (
                 <tr key={index}>
                   <td>{budget.category}</td>
-                  <td>${budget.budget}</td>
-                  <td>${budget.spent}</td>
-                  <td className={budget.remaining < 0 ? "text-expense" : "text-income"}>${budget.remaining}</td>
+                  <td>₹{budget.budget}</td>
+                  <td>₹{budget.spent}</td>
+                  <td className={budget.remaining < 0 ? "text-expense" : "text-income"}>₹{budget.remaining}</td>
                   <td>
                     <div
                       style={{
@@ -150,4 +150,3 @@ export default function BudgetsTab() {
     </div>
   )
 }
-

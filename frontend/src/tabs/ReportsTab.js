@@ -77,15 +77,15 @@ export default function ReportsTab() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <div className="text-sm text-muted">Total Income</div>
-                    <div className="text-xl font-bold text-income">$4,350.00</div>
+                    <div className="text-xl font-bold text-income">₹4,350.00</div>
                   </div>
                   <div>
                     <div className="text-sm text-muted">Total Expenses</div>
-                    <div className="text-xl font-bold text-expense">$2,845.65</div>
+                    <div className="text-xl font-bold text-expense">₹2,845.65</div>
                   </div>
                   <div>
                     <div className="text-sm text-muted">Net Savings</div>
-                    <div className="text-xl font-bold">$1,504.35</div>
+                    <div className="text-xl font-bold">₹1,504.35</div>
                   </div>
                   <div>
                     <div className="text-sm text-muted">Savings Rate</div>
@@ -108,21 +108,21 @@ export default function ReportsTab() {
                   <tbody>
                     <tr>
                       <td>January</td>
-                      <td className="text-income">$4,200.00</td>
-                      <td className="text-expense">$3,100.25</td>
-                      <td>$1,099.75</td>
+                      <td className="text-income">₹4,200.00</td>
+                      <td className="text-expense">₹3,100.25</td>
+                      <td>₹1,099.75</td>
                     </tr>
                     <tr>
                       <td>February</td>
-                      <td className="text-income">$4,200.00</td>
-                      <td className="text-expense">$2,950.40</td>
-                      <td>$1,249.60</td>
+                      <td className="text-income">₹4,200.00</td>
+                      <td className="text-expense">₹2,950.40</td>
+                      <td>₹1,249.60</td>
                     </tr>
                     <tr>
                       <td>March</td>
-                      <td className="text-income">$4,350.00</td>
-                      <td className="text-expense">$2,845.65</td>
-                      <td>$1,504.35</td>
+                      <td className="text-income">₹4,350.00</td>
+                      <td className="text-expense">₹2,845.65</td>
+                      <td>₹1,504.35</td>
                     </tr>
                   </tbody>
                 </table>
@@ -159,32 +159,32 @@ export default function ReportsTab() {
                   <tbody>
                     <tr>
                       <td>Housing</td>
-                      <td className="text-expense">$1,200.00</td>
+                      <td className="text-expense">₹1,200.00</td>
                       <td>42.2%</td>
                     </tr>
                     <tr>
                       <td>Food</td>
-                      <td className="text-expense">$450.75</td>
+                      <td className="text-expense">₹450.75</td>
                       <td>15.8%</td>
                     </tr>
                     <tr>
                       <td>Utilities</td>
-                      <td className="text-expense">$325.40</td>
+                      <td className="text-expense">₹325.40</td>
                       <td>11.4%</td>
                     </tr>
                     <tr>
                       <td>Transportation</td>
-                      <td className="text-expense">$280.50</td>
+                      <td className="text-expense">₹280.50</td>
                       <td>9.9%</td>
                     </tr>
                     <tr>
                       <td>Entertainment</td>
-                      <td className="text-expense">$210.00</td>
+                      <td className="text-expense">₹210.00</td>
                       <td>7.4%</td>
                     </tr>
                     <tr>
                       <td>Others</td>
-                      <td className="text-expense">$379.00</td>
+                      <td className="text-expense">₹379.00</td>
                       <td>13.3%</td>
                     </tr>
                   </tbody>
@@ -220,17 +220,17 @@ export default function ReportsTab() {
                   <tbody>
                     <tr>
                       <td>January</td>
-                      <td className="text-expense">$3,100.25</td>
+                      <td className="text-expense">₹3,100.25</td>
                       <td>-</td>
                     </tr>
                     <tr>
                       <td>February</td>
-                      <td className="text-expense">$2,950.40</td>
+                      <td className="text-expense">₹2,950.40</td>
                       <td className="text-income">-4.8%</td>
                     </tr>
                     <tr>
                       <td>March</td>
-                      <td className="text-expense">$2,845.65</td>
+                      <td className="text-expense">₹2,845.65</td>
                       <td className="text-income">-3.6%</td>
                     </tr>
                   </tbody>
@@ -251,26 +251,26 @@ export default function ReportsTab() {
                   <tbody>
                     <tr>
                       <td>Housing</td>
-                      <td>$1,200.00</td>
-                      <td>$1,200.00</td>
+                      <td>₹1,200.00</td>
+                      <td>₹1,200.00</td>
                       <td>0%</td>
                     </tr>
                     <tr>
                       <td>Food</td>
-                      <td>$450.75</td>
-                      <td>$485.40</td>
+                      <td>₹450.75</td>
+                      <td>₹485.40</td>
                       <td className="text-income">-7.1%</td>
                     </tr>
                     <tr>
                       <td>Utilities</td>
-                      <td>$325.40</td>
-                      <td>$310.00</td>
+                      <td>₹325.40</td>
+                      <td>₹310.00</td>
                       <td className="text-expense">+5.0%</td>
                     </tr>
                     <tr>
                       <td>Transportation</td>
-                      <td>$280.50</td>
-                      <td>$305.00</td>
+                      <td>₹280.50</td>
+                      <td>₹305.00</td>
                       <td className="text-income">-8.0%</td>
                     </tr>
                   </tbody>
@@ -283,4 +283,3 @@ export default function ReportsTab() {
     </div>
   )
 }
-

@@ -129,7 +129,7 @@ export default function CategoriesTab() {
                 </div>
                 <div>
                   <h3 className="font-medium">{category.name}</h3>
-                  <p className="text-sm text-muted">Monthly Budget: ${category.budget}</p>
+                  <p className="text-sm text-muted">Monthly Budget: ₹{category.budget}</p>
                 </div>
               </div>
               <div className="flex justify-end gap-2">
@@ -149,4 +149,3 @@ export default function CategoriesTab() {
     </div>
   )
 }
-

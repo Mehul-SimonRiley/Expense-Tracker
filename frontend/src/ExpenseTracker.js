@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import "./ExpenseTracker.css"
 import {
   FiBarChart,
@@ -29,6 +29,10 @@ import SettingsTab from "./tabs/SettingsTab"
 export default function ExpenseTracker() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [activeTab, setActiveTab] = useState("dashboard")
+
+  useEffect(() => {
+    document.title = "Traxpense - Personal Finance Tracker"
+  }, [])
 
   // Function to render the active tab content
   const renderTabContent = () => {
@@ -62,7 +66,7 @@ export default function ExpenseTracker() {
         </button>
         <div className="logo">
           <FiDollarSign className="logo-icon" />
-          <span className="logo-text">ExpenseTracker</span>
+          <span className="logo-text">Traxpense</span>
         </div>
         <div className="header-actions">
           <div className="search-container">
@@ -149,4 +153,3 @@ export default function ExpenseTracker() {
     </div>
   )
 }
-

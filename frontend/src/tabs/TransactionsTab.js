@@ -110,19 +110,19 @@ export default function TransactionsTab() {
         <div className="card">
           <div className="card-content">
             <div className="text-sm text-muted mb-2">Total Income</div>
-            <div className="text-xl font-bold text-income">+$2,525.00</div>
+            <div className="text-xl font-bold text-income">+₹2,525.00</div>
           </div>
         </div>
         <div className="card">
           <div className="card-content">
             <div className="text-sm text-muted mb-2">Total Expenses</div>
-            <div className="text-xl font-bold text-expense">-$1,490.49</div>
+            <div className="text-xl font-bold text-expense">-₹1,490.49</div>
           </div>
         </div>
         <div className="card">
           <div className="card-content">
             <div className="text-sm text-muted mb-2">Net Flow</div>
-            <div className="text-xl font-bold">+$1,034.51</div>
+            <div className="text-xl font-bold">+₹1,034.51</div>
           </div>
         </div>
       </div>
@@ -164,7 +164,7 @@ export default function TransactionsTab() {
                     </span>
                   </td>
                   <td className={transaction.type === "expense" ? "text-expense" : "text-income"}>
-                    {transaction.type === "expense" ? "-" : "+"}${Math.abs(transaction.amount).toFixed(2)}
+                    {transaction.type === "expense" ? "-" : "+"}₹{Math.abs(transaction.amount).toFixed(2)}
                   </td>
                   <td>
                     <div className="flex gap-2">
@@ -196,4 +196,3 @@ export default function TransactionsTab() {
     </div>
   )
 }
-

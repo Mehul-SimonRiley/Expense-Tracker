@@ -78,7 +78,7 @@ export default function ExpenseTracker({ onLogout }) {
             <span className="sr-only">Logout</span>
           </button>
           <div className="avatar">
-            <span>JD</span>
+            <span>SP</span>
           </div>
         </div>
       </header>

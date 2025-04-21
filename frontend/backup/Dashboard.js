@@ -39,7 +39,7 @@ export default function ExpenseTrackerDashboard() {
             <span className="sr-only">Notifications</span>
           </button>
           <div className="avatar">
-            <span>JD</span>
+            <span>SP</span>
           </div>
         </div>
       </header>

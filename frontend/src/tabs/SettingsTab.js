@@ -5,6 +5,10 @@ import { FiSave } from "react-icons/fi"
 
 export default function SettingsTab() {
   const [activeSection, setActiveSection] = useState("profile")
+  const [currency, setCurrency] = useState("INR")
+  const [currencyDisplay, setCurrencyDisplay] = useState("₹1,234.56")
+  const [decimalSeparator, setDecimalSeparator] = useState("period")
+  const [thousandsSeparator, setThousandsSeparator] = useState("comma")
 
   return (
     <div>
@@ -63,6 +67,14 @@ export default function SettingsTab() {
                   Data Management
                 </button>
               </li>
+              <li>
+                <button
+                  className={`w-full text-left px-4 py-3 ${activeSection === "import" ? "bg-primary text-white" : ""}`}
+                  onClick={() => setActiveSection("import")}
+                >
+                  Import/Export
+                </button>
+              </li>
             </ul>
           </div>
         </div>
@@ -86,7 +98,7 @@ export default function SettingsTab() {
                   </div>
                   <div className="form-group">
                     <label className="form-label">Phone</label>
-                    <input type="tel" className="form-input" defaultValue="+1 (555) 123-4567" />
+                    <input type="tel" className="form-input" defaultValue="+91 98765 43210" />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Profile Picture</label>
@@ -171,25 +183,25 @@ export default function SettingsTab() {
                     <label className="form-label">Language</label>
                     <select className="form-select">
                       <option>English</option>
-                      <option>Spanish</option>
-                      <option>French</option>
-                      <option>German</option>
-                      <option>Chinese</option>
+                      <option>Hindi</option>
+                      <option>Tamil</option>
+                      <option>Telugu</option>
+                      <option>Bengali</option>
                     </select>
                   </div>
                   <div className="form-group">
                     <label className="form-label">Date Format</label>
                     <select className="form-select">
-                      <option>MM/DD/YYYY</option>
                       <option>DD/MM/YYYY</option>
+                      <option>MM/DD/YYYY</option>
                       <option>YYYY-MM-DD</option>
                     </select>
                   </div>
                   <div className="form-group">
                     <label className="form-label">Start of Week</label>
                     <select className="form-select">
-                      <option>Sunday</option>
                       <option>Monday</option>
+                      <option>Sunday</option>
                     </select>
                   </div>
                 </div>
@@ -272,39 +284,51 @@ export default function SettingsTab() {
                 <div className="grid grid-cols-1 gap-4">
                   <div className="form-group">
                     <label className="form-label">Primary Currency</label>
-                    <select className="form-select">
-                      <option>INR - Indian Rupee</option>
-                      <option>USD - US Dollar</option>
-                      <option>EUR - Euro</option>
-                      <option>GBP - British Pound</option>
-                      <option>JPY - Japanese Yen</option>
-                      <option>CAD - Canadian Dollar</option>
-                      <option>AUD - Australian Dollar</option>
+                    <select className="form-select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+                      <option value="INR">INR - Indian Rupee</option>
+                      <option value="USD">USD - US Dollar</option>
+                      <option value="EUR">EUR - Euro</option>
+                      <option value="GBP">GBP - British Pound</option>
+                      <option value="JPY">JPY - Japanese Yen</option>
+                      <option value="CAD">CAD - Canadian Dollar</option>
+                      <option value="AUD">AUD - Australian Dollar</option>
                     </select>
                   </div>
                   <div className="form-group">
                     <label className="form-label">Currency Display</label>
-                    <select className="form-select">
-                      <option>₹1,234.56</option>
-                      <option>1,234.56 ₹</option>
-                      <option>₹ 1,234.56</option>
-                      <option>1,234.56 INR</option>
+                    <select
+                      className="form-select"
+                      value={currencyDisplay}
+                      onChange={(e) => setCurrencyDisplay(e.target.value)}
+                    >
+                      <option value="₹1,234.56">₹1,234.56</option>
+                      <option value="1,234.56 ₹">1,234.56 ₹</option>
+                      <option value="₹ 1,234.56">₹ 1,234.56</option>
+                      <option value="1,234.56 INR">1,234.56 INR</option>
                     </select>
                   </div>
                   <div className="form-group">
                     <label className="form-label">Decimal Separator</label>
-                    <select className="form-select">
-                      <option>Period (.)</option>
-                      <option>Comma (,)</option>
+                    <select
+                      className="form-select"
+                      value={decimalSeparator}
+                      onChange={(e) => setDecimalSeparator(e.target.value)}
+                    >
+                      <option value="period">Period (.)</option>
+                      <option value="comma">Comma (,)</option>
                     </select>
                   </div>
                   <div className="form-group">
                     <label className="form-label">Thousands Separator</label>
-                    <select className="form-select">
-                      <option>Comma (,)</option>
-                      <option>Period (.)</option>
-                      <option>Space ( )</option>
-                      <option>None</option>
+                    <select
+                      className="form-select"
+                      value={thousandsSeparator}
+                      onChange={(e) => setThousandsSeparator(e.target.value)}
+                    >
+                      <option value="comma">Comma (,)</option>
+                      <option value="period">Period (.)</option>
+                      <option value="space">Space ( )</option>
+                      <option value="none">None</option>
                     </select>
                   </div>
                 </div>
@@ -326,23 +350,6 @@ export default function SettingsTab() {
               <div className="card-content">
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-medium mb-2">Export Data</h3>
-                    <p className="text-sm text-muted mb-3">Download your financial data in various formats</p>
-                    <div className="flex gap-2">
-                      <button className="btn btn-outline">Export as CSV</button>
-                      <button className="btn btn-outline">Export as PDF</button>
-                      <button className="btn btn-outline">Export as Excel</button>
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">Import Data</h3>
-                    <p className="text-sm text-muted mb-3">Import transactions from other sources</p>
-                    <div className="flex gap-2">
-                      <button className="btn btn-outline">Import from CSV</button>
-                      <button className="btn btn-outline">Import from Bank</button>
-                    </div>
-                  </div>
-                  <div>
                     <h3 className="text-lg font-medium mb-2">Data Backup</h3>
                     <p className="text-sm text-muted mb-3">Create and manage backups of your data</p>
                     <div className="flex gap-2">
@@ -359,6 +366,53 @@ export default function SettingsTab() {
                     >
                       Delete Account
                     </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeSection === "import" && (
+            <>
+              <div className="card-header">
+                <h2 className="card-title">Import & Export</h2>
+              </div>
+              <div className="card-content">
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Export Data</h3>
+                    <p className="text-sm text-muted mb-3">Download your financial data in various formats</p>
+                    <div className="flex gap-2">
+                      <button className="btn btn-outline">Export as CSV</button>
+                      <button className="btn btn-outline">Export as PDF</button>
+                      <button className="btn btn-outline">Export as Excel</button>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Import Data</h3>
+                    <p className="text-sm text-muted mb-3">Import transactions from other sources</p>
+                    <div className="space-y-4">
+                      <div className="form-group">
+                        <label className="form-label">Import from File</label>
+                        <div className="flex gap-2">
+                          <input type="file" className="form-input" />
+                          <button className="btn btn-primary">Upload</button>
+                        </div>
+                        <p className="text-xs text-muted mt-1">Supported formats: CSV, Excel</p>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Import from Bank</label>
+                        <select className="form-select mb-2">
+                          <option>Select your bank</option>
+                          <option>HDFC Bank</option>
+                          <option>ICICI Bank</option>
+                          <option>SBI</option>
+                          <option>Axis Bank</option>
+                          <option>Other</option>
+                        </select>
+                        <button className="btn btn-outline">Connect Bank Account</button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

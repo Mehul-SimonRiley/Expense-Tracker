@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import "./ExpenseTracker.css"
 import {
   FiBarChart,
-  FiBell,
   FiCalendar,
   FiCreditCard,
   FiDollarSign,
@@ -15,6 +14,7 @@ import {
   FiPlus,
   FiSearch,
   FiSettings,
+  FiLogOut,
 } from "react-icons/fi"
 
 // Import all tab components
@@ -26,7 +26,7 @@ import ReportsTab from "./tabs/ReportsTab"
 import CalendarTab from "./tabs/CalendarTab"
 import SettingsTab from "./tabs/SettingsTab"
 
-export default function ExpenseTracker() {
+export default function ExpenseTracker({ onLogout }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [activeTab, setActiveTab] = useState("dashboard")
 
@@ -73,10 +73,9 @@ export default function ExpenseTracker() {
             <FiSearch className="search-icon" />
             <input type="search" placeholder="Search transactions..." className="search-input" />
           </div>
-          <button className="notification-button">
-            <FiBell />
-            <span className="notification-badge">2</span>
-            <span className="sr-only">Notifications</span>
+          <button className="notification-button" onClick={onLogout} title="Logout">
+            <FiLogOut />
+            <span className="sr-only">Logout</span>
           </button>
           <div className="avatar">
             <span>JD</span>

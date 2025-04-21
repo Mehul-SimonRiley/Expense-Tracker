@@ -1,12 +1,17 @@
-import React from 'react';
-import ExpenseTracker from './ExpenseTracker';
+"use client"
+
+import { useState } from "react"
+import ExpenseTracker from "./ExpenseTracker"
+import LoginPage from "./LoginPage"
 
 function App() {
-  return (
-    <div className="App">
-      <ExpenseTracker />
-    </div>
-  );
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  const handleLogin = () => {
+    setIsLoggedIn(true)
+  }
+
+  return <div className="App">{isLoggedIn ? <ExpenseTracker /> : <LoginPage onLogin={handleLogin} />}</div>
 }
 
-export default App;
+export default App

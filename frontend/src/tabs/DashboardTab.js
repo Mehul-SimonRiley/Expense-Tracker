@@ -1,11 +1,44 @@
 "use client"
 
 import { useState } from "react"
-import { FiBarChart2, FiCreditCard, FiDollarSign, FiDownload, FiPieChart, FiPlus } from "react-icons/fi"
+import { FiBarChart2, FiCreditCard, FiDownload, FiPieChart, FiPlus } from "react-icons/fi"
 
 export default function DashboardTab() {
   const [timeframe, setTimeframe] = useState("month")
   const [chartView, setChartView] = useState("monthly")
+
+  // Sample data - in a real app, this would come from your API
+  const summaryData = {
+    totalExpenses: "₹2,845.65",
+    totalIncome: "₹4,350.00",
+    currentBalance: "₹1,504.35",
+    savings: "₹573.00",
+    expenseChange: "+12.3%",
+    incomeChange: "0%",
+    balanceChange: "-8.4%",
+    savingsPercent: "13.2%",
+  }
+
+  const budgetData = [
+    { category: "Groceries", current: 350, total: 500, percentage: 70 },
+    { category: "Dining Out", current: 280, total: 300, percentage: 93 },
+    { category: "Transportation", current: 120, total: 200, percentage: 60 },
+    { category: "Entertainment", current: 175, total: 150, percentage: 117 },
+  ]
+
+  const recentTransactions = [
+    { id: 1, description: "Grocery Store", date: "Mar 18, 2025", category: "Food", amount: -86.42, type: "expense" },
+    { id: 2, description: "Salary Deposit", date: "Mar 15, 2025", category: "Income", amount: 2175.0, type: "income" },
+    { id: 3, description: "Restaurant", date: "Mar 14, 2025", category: "Dining", amount: -42.5, type: "expense" },
+  ]
+
+  const categoryBreakdown = [
+    { category: "Housing", percentage: 35, color: "var(--housing-color)" },
+    { category: "Food", percentage: 25, color: "var(--food-color)" },
+    { category: "Transportation", percentage: 15, color: "var(--transportation-color)" },
+    { category: "Entertainment", percentage: 10, color: "var(--entertainment-color)" },
+    { category: "Others", percentage: 15, color: "var(--others-color)" },
+  ]
 
   return (
     <div className="dashboard-grid">
@@ -36,31 +69,31 @@ export default function DashboardTab() {
         <div className="card">
           <div className="card-content">
             <div className="text-sm text-muted mb-4">Total Expenses</div>
-            <div className="text-2xl font-bold text-expense">₹2,845.65</div>
-            <p className="text-xs text-muted">+12.3% from last month</p>
+            <div className="text-2xl font-bold text-expense">{summaryData.totalExpenses}</div>
+            <p className="text-xs text-muted">{summaryData.expenseChange} from last month</p>
           </div>
         </div>
         <div className="card">
           <div className="card-content">
             <div className="text-sm text-muted mb-4">Total Income</div>
-            <div className="text-2xl font-bold text-income">₹4,350.00</div>
+            <div className="text-2xl font-bold text-income">{summaryData.totalIncome}</div>
             <p className="text-xs text-muted">Same as last month</p>
           </div>
         </div>
         <div className="card">
           <div className="card-content">
             <div className="text-sm text-muted mb-4">Current Balance</div>
-            <div className="text-2xl font-bold">₹1,504.35</div>
-            <p className="text-xs text-muted">-8.4% from last month</p>
+            <div className="text-2xl font-bold">{summaryData.currentBalance}</div>
+            <p className="text-xs text-muted">{summaryData.balanceChange} from last month</p>
           </div>
         </div>
         <div className="card">
           <div className="card-content">
             <div className="text-sm text-muted mb-4">Savings</div>
             <div className="text-2xl font-bold" style={{ color: "var(--savings-color)" }}>
-              ₹573.00
+              {summaryData.savings}
             </div>
-            <p className="text-xs text-muted">13.2% of income</p>
+            <p className="text-xs text-muted">{summaryData.savingsPercent} of income</p>
           </div>
         </div>
       </div>
@@ -104,98 +137,33 @@ export default function DashboardTab() {
           </div>
           <div className="card-content">
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm font-medium">Groceries</span>
-                  <span className="text-sm font-medium">₹350/₹500</span>
-                </div>
-                <div
-                  style={{
-                    height: "8px",
-                    backgroundColor: "var(--border-color)",
-                    borderRadius: "9999px",
-                    overflow: "hidden",
-                  }}
-                >
+              {budgetData.map((budget, index) => (
+                <div key={index}>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-medium">{budget.category}</span>
+                    <span className="text-sm font-medium">
+                      ₹{budget.current}/₹{budget.total}
+                    </span>
+                  </div>
                   <div
                     style={{
-                      width: "70%",
-                      height: "100%",
-                      backgroundColor: "var(--primary-color)",
+                      height: "8px",
+                      backgroundColor: "var(--border-color)",
                       borderRadius: "9999px",
+                      overflow: "hidden",
                     }}
-                  ></div>
+                  >
+                    <div
+                      style={{
+                        width: `${budget.percentage}%`,
+                        height: "100%",
+                        backgroundColor: budget.percentage > 100 ? "var(--expense-color)" : "var(--primary-color)",
+                        borderRadius: "9999px",
+                      }}
+                    ></div>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm font-medium">Dining Out</span>
-                  <span className="text-sm font-medium">₹280/₹300</span>
-                </div>
-                <div
-                  style={{
-                    height: "8px",
-                    backgroundColor: "var(--border-color)",
-                    borderRadius: "9999px",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "93%",
-                      height: "100%",
-                      backgroundColor: "var(--primary-color)",
-                      borderRadius: "9999px",
-                    }}
-                  ></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm font-medium">Transportation</span>
-                  <span className="text-sm font-medium">₹120/₹200</span>
-                </div>
-                <div
-                  style={{
-                    height: "8px",
-                    backgroundColor: "var(--border-color)",
-                    borderRadius: "9999px",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "60%",
-                      height: "100%",
-                      backgroundColor: "var(--primary-color)",
-                      borderRadius: "9999px",
-                    }}
-                  ></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm font-medium">Entertainment</span>
-                  <span className="text-sm font-medium">₹175/₹150</span>
-                </div>
-                <div
-                  style={{
-                    height: "8px",
-                    backgroundColor: "var(--border-color)",
-                    borderRadius: "9999px",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      backgroundColor: "var(--expense-color)",
-                      borderRadius: "9999px",
-                    }}
-                  ></div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
@@ -210,36 +178,37 @@ export default function DashboardTab() {
           </div>
           <div className="card-content">
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div className="flex items-center gap-4">
-                <div style={{ borderRadius: "9999px", backgroundColor: "rgba(239, 68, 68, 0.1)", padding: "0.5rem" }}>
-                  <FiCreditCard style={{ width: "1.25rem", height: "1.25rem", color: "var(--expense-color)" }} />
+              {recentTransactions.map((transaction) => (
+                <div key={transaction.id} className="flex items-center gap-4">
+                  <div
+                    style={{
+                      borderRadius: "9999px",
+                      backgroundColor:
+                        transaction.type === "expense" ? "rgba(239, 68, 68, 0.1)" : "rgba(16, 185, 129, 0.1)",
+                      padding: "0.5rem",
+                    }}
+                  >
+                    <FiCreditCard
+                      style={{
+                        width: "1.25rem",
+                        height: "1.25rem",
+                        color: transaction.type === "expense" ? "var(--expense-color)" : "var(--income-color)",
+                      }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p className="text-sm font-medium">{transaction.description}</p>
+                    <p className="text-xs text-muted">
+                      {transaction.date} • {transaction.category}
+                    </p>
+                  </div>
+                  <div
+                    className={transaction.type === "expense" ? "text-expense font-medium" : "text-income font-medium"}
+                  >
+                    {transaction.type === "expense" ? "-" : "+"}₹{Math.abs(transaction.amount).toFixed(2)}
+                  </div>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <p className="text-sm font-medium">Grocery Store</p>
-                  <p className="text-xs text-muted">Mar 18, 2025 • Food</p>
-                </div>
-                <div className="text-expense font-medium">-₹86.42</div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div style={{ borderRadius: "9999px", backgroundColor: "rgba(16, 185, 129, 0.1)", padding: "0.5rem" }}>
-                  <FiDollarSign style={{ width: "1.25rem", height: "1.25rem", color: "var(--income-color)" }} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p className="text-sm font-medium">Salary Deposit</p>
-                  <p className="text-xs text-muted">Mar 15, 2025 • Income</p>
-                </div>
-                <div className="text-income font-medium">+₹2,175.00</div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div style={{ borderRadius: "9999px", backgroundColor: "rgba(239, 68, 68, 0.1)", padding: "0.5rem" }}>
-                  <FiCreditCard style={{ width: "1.25rem", height: "1.25rem", color: "var(--expense-color)" }} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p className="text-sm font-medium">Restaurant</p>
-                  <p className="text-xs text-muted">Mar 14, 2025 • Dining</p>
-                </div>
-                <div className="text-expense font-medium">-₹42.50</div>
-              </div>
+              ))}
             </div>
           </div>
           <div className="card-footer">
@@ -258,66 +227,22 @@ export default function DashboardTab() {
               <FiPieChart style={{ width: "40px", height: "40px", color: "var(--text-muted)" }} />
             </div>
             <div style={{ marginTop: "1rem" }}>
-              <div className="flex items-center mb-2">
-                <div
-                  style={{
-                    width: "12px",
-                    height: "12px",
-                    borderRadius: "50%",
-                    backgroundColor: "var(--housing-color)",
-                    marginRight: "8px",
-                  }}
-                ></div>
-                <span className="text-sm">Housing - 35%</span>
-              </div>
-              <div className="flex items-center mb-2">
-                <div
-                  style={{
-                    width: "12px",
-                    height: "12px",
-                    borderRadius: "50%",
-                    backgroundColor: "var(--food-color)",
-                    marginRight: "8px",
-                  }}
-                ></div>
-                <span className="text-sm">Food - 25%</span>
-              </div>
-              <div className="flex items-center mb-2">
-                <div
-                  style={{
-                    width: "12px",
-                    height: "12px",
-                    borderRadius: "50%",
-                    backgroundColor: "var(--transportation-color)",
-                    marginRight: "8px",
-                  }}
-                ></div>
-                <span className="text-sm">Transportation - 15%</span>
-              </div>
-              <div className="flex items-center mb-2">
-                <div
-                  style={{
-                    width: "12px",
-                    height: "12px",
-                    borderRadius: "50%",
-                    backgroundColor: "var(--entertainment-color)",
-                    marginRight: "8px",
-                  }}
-                ></div>
-                <span className="text-sm">Entertainment - 10%</span>
-              </div>
-              <div className="flex items-center">
-                <div
-                  style={{
-                    width: "12px",
-                    height: "12px",
-                    borderRadius: "50%",
-                    backgroundColor: "var(--others-color)",
-                    marginRight: "8px",
-                  }}
-                ></div>
-                <span className="text-sm">Others - 15%</span>
-              </div>
+              {categoryBreakdown.map((category, index) => (
+                <div key={index} className="flex items-center mb-2">
+                  <div
+                    style={{
+                      width: "12px",
+                      height: "12px",
+                      borderRadius: "50%",
+                      backgroundColor: category.color,
+                      marginRight: "8px",
+                    }}
+                  ></div>
+                  <span className="text-sm">
+                    {category.category} - {category.percentage}%
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

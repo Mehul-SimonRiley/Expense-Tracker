@@ -1,11 +1,14 @@
-"use client"
+"use client"  // You can keep or remove this line — it's not needed in CRA
 
-import dynamic from "next/dynamic"
-import React from "react"
+import React, { lazy, Suspense } from "react";
 
-// Use dynamic import with no SSR to avoid TypeScript errors
-const ExpenseTracker = dynamic(() => import("../ExpenseTracker"), { ssr: false })
+// Lazy load the component
+const ExpenseTracker = lazy(() => import("../ExpenseTracker"));
 
 export default function Page() {
-  return <ExpenseTracker />
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ExpenseTracker onLogout={undefined} />
+    </Suspense>
+  );
 }

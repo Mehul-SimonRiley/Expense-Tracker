@@ -4,7 +4,7 @@ from models.transaction import Transaction
 from models.budget import Budget
 from sqlalchemy import func
 from extensions import db  # Import the db object
-
+from models.category import Category
 bp = Blueprint("dashboard", __name__)
 
 @bp.route("/summary", methods=["GET"])
@@ -27,8 +27,18 @@ def get_summary():
 @jwt_required()
 def get_budget_status():
     user_id = get_jwt_identity()
-    budgets = Budget.query.filter_by(user_id=user_id).all()
-    budget_status = [{"category": b.category_id, "current": b.amount, "total": b.amount * 1.2} for b in budgets]
+    # Join Budget with Category to get the category name
+    budgets = db.session.query(Budget, Category.name).join(Category, Budget.category_id == Category.id).filter(Budget.user_id == user_id).all()
+
+    # Format the response to include category name
+    budget_status = [
+        {
+            "category": category_name,
+            "current": budget.amount,
+            "total": budget.amount * 1.2  # Example: total is 120% of current
+        }
+        for budget, category_name in budgets
+    ]
     return jsonify(budget_status)
 
 @bp.route("/recent-transactions", methods=["GET"])

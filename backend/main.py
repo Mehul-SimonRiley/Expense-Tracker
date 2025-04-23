@@ -4,6 +4,7 @@ from flask_jwt_extended import JWTManager
 from config import Config
 from extensions import db  # Import db from extensions.py
 from routes import auth, transactions, categories, budgets, dashboard, calendar, reports, settings
+from flask_migrate import Migrate  # Import Flask-Migrate
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -13,6 +14,7 @@ JWTManager(app)
 
 # Initialize extensions
 db.init_app(app)
+migrate = Migrate(app, db)  # Initialize Flask-Migrate
 
 # Import routes after initializing db to avoid circular imports
 from routes import auth, transactions, categories, budgets
@@ -26,11 +28,6 @@ app.register_blueprint(dashboard.bp, url_prefix="/dashboard")
 app.register_blueprint(calendar.bp, url_prefix="/calendar")
 app.register_blueprint(reports.bp, url_prefix="/reports")
 app.register_blueprint(settings.bp, url_prefix="/settings")
-
-# Create database tables
-with app.app_context():
-    db.create_all()
-    print("Database tables created successfully!")
 
 # Default route
 @app.route("/")

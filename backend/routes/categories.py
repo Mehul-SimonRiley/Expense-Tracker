@@ -8,30 +8,39 @@ bp = Blueprint("categories", __name__)
 @bp.route("/", methods=["GET"])
 @jwt_required()
 def get_categories():
-    user_id = get_jwt_identity()
-    categories = Category.query.filter_by(user_id=user_id).all()
-    return jsonify([{
-        "id": c.id,
-        "name": c.name
-    } for c in categories])
+    try:
+        user_id = get_jwt_identity()
+        categories = Category.query.filter_by(user_id=user_id).all()
+        return jsonify([{
+            "id": c.id,
+            "name": c.name
+        } for c in categories])
+    except Exception as e:
+        return jsonify({"error": "An error occurred while fetching categories.", "details": str(e)}), 500
 
 @bp.route("/", methods=["POST"])
 @jwt_required()
 def add_category():
-    user_id = get_jwt_identity()
-    data = request.json
-    category = Category(user_id=user_id, name=data["name"])
-    db.session.add(category)
-    db.session.commit()
-    return jsonify({"message": "Category added successfully"}), 201
+    try:
+        user_id = get_jwt_identity()
+        data = request.json
+        category = Category(user_id=user_id, name=data["name"])
+        db.session.add(category)
+        db.session.commit()
+        return jsonify({"message": "Category added successfully"}), 201
+    except Exception as e:
+        return jsonify({"error": "An error occurred while adding the category.", "details": str(e)}), 500
 
 @bp.route("/<int:id>", methods=["DELETE"])
 @jwt_required()
 def delete_category(id):
-    user_id = get_jwt_identity()
-    category = Category.query.filter_by(id=id, user_id=user_id).first()
-    if not category:
-        return jsonify({"message": "Category not found"}), 404
-    db.session.delete(category)
-    db.session.commit()
-    return jsonify({"message": "Category deleted successfully"}), 200
+    try:
+        user_id = get_jwt_identity()
+        category = Category.query.filter_by(id=id, user_id=user_id).first()
+        if not category:
+            return jsonify({"message": "Category not found"}), 404
+        db.session.delete(category)
+        db.session.commit()
+        return jsonify({"message": "Category deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": "An error occurred while deleting the category.", "details": str(e)}), 500

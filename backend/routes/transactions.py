@@ -12,14 +12,14 @@ def get_transactions():
     try:
         user_id = get_jwt_identity()
         transactions = Transaction.query.filter_by(user_id=user_id).all()
-        return jsonify([{
+        return jsonify({"transactions": [{
             "id": t.id,
             "description": t.description,
             "category_id": t.category_id,
             "amount": t.amount,
             "type": t.type,
             "date": t.date
-        } for t in transactions])
+        } for t in transactions]})
     except Exception as e:
         return jsonify({"error": "An error occurred while fetching transactions.", "details": str(e)}), 500
 

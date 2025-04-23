@@ -19,19 +19,33 @@ export default function LoginPage({ onLogin }) {
 
     try {
       if (isLogin) {
-        // For now, just simulate login since backend isn't connected yet
-        // const response = await authService.login(email, password);
-        onLogin()
+        // Call backend /auth/login
+        const response = await fetch("http://localhost:5000/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Login failed");
+        // Store token and call onLogin
+        localStorage.setItem("token", data.access_token);
+        onLogin();
       } else {
-        // For now, just simulate registration
-        // const userData = { name, email, password };
-        // await authService.register(userData);
-        onLogin()
+        // Call backend /auth/register
+        const response = await fetch("http://localhost:5000/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password, phone: "" }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Registration failed");
+        setIsLogin(true);
+        setError("Registration successful! Please log in.");
       }
     } catch (error) {
-      setError(error.message || "Authentication failed. Please try again.")
+      setError(error.message || "Authentication failed. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 

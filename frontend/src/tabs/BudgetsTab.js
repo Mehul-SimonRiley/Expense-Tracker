@@ -1,24 +1,32 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { FiEdit2, FiPlus } from "react-icons/fi"
+import budgetService from "../services/budgetService"
 
 export default function BudgetsTab() {
   const [timeframe, setTimeframe] = useState("month")
+  const [budgets, setBudgets] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Sample budget data
-  const budgets = [
-    { category: "Housing", budget: 1500, spent: 1200, remaining: 300, percentage: 80 },
-    { category: "Food", budget: 500, spent: 350, remaining: 150, percentage: 70 },
-    { category: "Transportation", budget: 200, spent: 120, remaining: 80, percentage: 60 },
-    { category: "Utilities", budget: 300, spent: 210, remaining: 90, percentage: 70 },
-    { category: "Entertainment", budget: 150, spent: 175, remaining: -25, percentage: 117 },
-    { category: "Shopping", budget: 200, spent: 150, remaining: 50, percentage: 75 },
-    { category: "Healthcare", budget: 100, spent: 0, remaining: 100, percentage: 0 },
-    { category: "Personal", budget: 100, spent: 45, remaining: 55, percentage: 45 },
-    { category: "Education", budget: 50, spent: 0, remaining: 50, percentage: 0 },
-    { category: "Savings", budget: 400, spent: 400, remaining: 0, percentage: 100 },
-  ]
+  useEffect(() => {
+    const fetchBudgets = async () => {
+      setIsLoading(true);
+      try {
+        const data = await budgetsAPI.getAll();
+        setBudgets(data || []);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching budgets:", err);
+        setError(err.message || "Failed to load budgets. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBudgets();
+  }, []);
 
   return (
     <div>

@@ -1,22 +1,31 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { FiChevronLeft, FiChevronRight, FiPlus } from "react-icons/fi"
+import calendarService from "../services/calendarService"
 
 export default function CalendarTab() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [transactions, setTransactions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Sample transaction data for the calendar
-  const transactions = [
-    { id: 1, date: "2025-03-01", description: "Rent Payment", amount: -1200.0, type: "expense" },
-    { id: 2, date: "2025-03-03", description: "Movie Tickets", amount: -28.5, type: "expense" },
-    { id: 3, date: "2025-03-05", description: "Freelance Payment", amount: 350.0, type: "income" },
-    { id: 4, date: "2025-03-10", description: "Electricity Bill", amount: -94.32, type: "expense" },
-    { id: 5, date: "2025-03-12", description: "Gas Station", amount: -38.75, type: "expense" },
-    { id: 6, date: "2025-03-14", description: "Restaurant", amount: -42.5, type: "expense" },
-    { id: 7, date: "2025-03-15", description: "Salary Deposit", amount: 2175.0, type: "income" },
-    { id: 8, date: "2025-03-18", description: "Grocery Store", amount: -86.42, type: "expense" },
-  ]
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      setIsLoading(true);
+      try {
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth() + 1; // JavaScript months are 0-indexed
+        const data = await calendarService.getTransactions({ year, month });
+        setTransactions(data);
+      } catch (error) {
+        console.error("Error fetching calendar transactions:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, [currentMonth]);
 
   // Helper function to get days in month
   const getDaysInMonth = (year, month) => {

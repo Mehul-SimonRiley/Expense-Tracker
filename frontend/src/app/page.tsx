@@ -1,14 +1,12 @@
-"use client"  // You can keep or remove this line — it's not needed in CRA
+"use client";
 
-import React, { lazy, Suspense } from "react";
-
-// Lazy load the component
-const ExpenseTracker = lazy(() => import("../ExpenseTracker"));
+import React from "react";
 
 export default function Page() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <ExpenseTracker onLogout={undefined} />
-    </Suspense>
+    <div>
+      <h1>Welcome to the Expense Tracker!</h1>
+      <p>The login page has been temporarily disabled.</p>
+    </div>
   );
 }

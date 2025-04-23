@@ -26,7 +26,7 @@ export default function ExpenseTrackerDashboard() {
         </button>
         <div className="logo">
           <FiDollarSign className="logo-icon" /> {/* Changed from FiWallet */}
-           <span className="logo-text">ExpenseTracker</span>
+           <span className="logo-text">Traxpense</span>
         </div>
         <div className="header-actions">
           <div className="search-container">

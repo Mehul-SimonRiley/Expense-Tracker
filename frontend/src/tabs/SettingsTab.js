@@ -2,9 +2,58 @@
 
 import { useState } from "react"
 import { FiSave } from "react-icons/fi"
+import { settingsService } from "../services/api";
 
 export default function SettingsTab() {
   const [activeSection, setActiveSection] = useState("profile")
+
+  const [profileData, setProfileData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+  });
+
+  const [preferencesData, setPreferencesData] = useState({
+    theme: "light",
+    language: "en",
+    date_format: "YYYY-MM-DD",
+    start_of_week: "Monday",
+  });
+
+  const [notificationsData, setNotificationsData] = useState({
+    email_notifications: true,
+    push_notifications: true,
+  });
+
+  const handleSaveProfile = async () => {
+    try {
+      await settingsService.updateProfile(profileData);
+      alert("Profile updated successfully");
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      alert("Failed to update profile. Please try again later.");
+    }
+  };
+
+  const handleSavePreferences = async () => {
+    try {
+      await settingsService.updatePreferences(preferencesData);
+      alert("Preferences updated successfully");
+    } catch (error) {
+      console.error("Error updating preferences:", error);
+      alert("Failed to update preferences. Please try again later.");
+    }
+  };
+
+  const handleSaveNotifications = async () => {
+    try {
+      await settingsService.updateNotifications(notificationsData);
+      alert("Notification settings updated successfully");
+    } catch (error) {
+      console.error("Error updating notifications:", error);
+      alert("Failed to update notifications. Please try again later.");
+    }
+  };
 
   return (
     <div>
@@ -70,15 +119,30 @@ export default function SettingsTab() {
                 <div className="grid grid-cols-1 gap-4">
                   <div className="form-group">
                     <label className="form-label">Full Name</label>
-                    <input type="text" className="form-input" defaultValue="Shashank Prasad" />
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={profileData.name}
+                      onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                    />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Email</label>
-                    <input type="email" className="form-input" defaultValue="sp@example.com" />
+                    <input
+                      type="email"
+                      className="form-input"
+                      value={profileData.email}
+                      onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                    />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Phone</label>
-                    <input type="tel" className="form-input" defaultValue="+91 999995555" />
+                    <input
+                      type="tel"
+                      className="form-input"
+                      value={profileData.phone}
+                      onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                    />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Profile Picture</label>
@@ -92,7 +156,7 @@ export default function SettingsTab() {
                 </div>
               </div>
               <div className="card-footer">
-                <button className="btn btn-primary">
+                <button className="btn btn-primary" onClick={handleSaveProfile}>
                   <FiSave />
                   Save Changes
                 </button>
@@ -153,41 +217,57 @@ export default function SettingsTab() {
                 <div className="grid grid-cols-1 gap-4">
                   <div className="form-group">
                     <label className="form-label">Theme</label>
-                    <select className="form-select">
-                      <option>Light</option>
-                      <option>Dark</option>
-                      <option>System Default</option>
+                    <select
+                      className="form-select"
+                      value={preferencesData.theme}
+                      onChange={(e) => setPreferencesData({ ...preferencesData, theme: e.target.value })}
+                    >
+                      <option value="light">Light</option>
+                      <option value="dark">Dark</option>
+                      <option value="System Default">System Default</option>
                     </select>
                   </div>
                   <div className="form-group">
                     <label className="form-label">Language</label>
-                    <select className="form-select">
-                      <option>English</option>
-                      <option>Hindi</option>
-                      <option>Tamil</option>
-                      <option>Telugu</option>
-                      <option>Bengali</option>
+                    <select
+                      className="form-select"
+                      value={preferencesData.language}
+                      onChange={(e) => setPreferencesData({ ...preferencesData, language: e.target.value })}
+                    >
+                      <option value="en">English</option>
+                      <option value="Hindi">Hindi</option>
+                      <option value="Tamil">Tamil</option>
+                      <option value="Telugu">Telugu</option>
+                      <option value="Bengali">Bengali</option>
                     </select>
                   </div>
                   <div className="form-group">
                     <label className="form-label">Date Format</label>
-                    <select className="form-select">
-                      <option>DD/MM/YYYY</option>
-                      <option>MM/DD/YYYY</option>
-                      <option>YYYY-MM-DD</option>
+                    <select
+                      className="form-select"
+                      value={preferencesData.date_format}
+                      onChange={(e) => setPreferencesData({ ...preferencesData, date_format: e.target.value })}
+                    >
+                      <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                      <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                      <option value="YYYY-MM-DD">YYYY-MM-DD</option>
                     </select>
                   </div>
                   <div className="form-group">
                     <label className="form-label">Start of Week</label>
-                    <select className="form-select">
-                      <option>Monday</option>
-                      <option>Sunday</option>
+                    <select
+                      className="form-select"
+                      value={preferencesData.start_of_week}
+                      onChange={(e) => setPreferencesData({ ...preferencesData, start_of_week: e.target.value })}
+                    >
+                      <option value="Monday">Monday</option>
+                      <option value="Sunday">Sunday</option>
                     </select>
                   </div>
                 </div>
               </div>
               <div className="card-footer">
-                <button className="btn btn-primary">
+                <button className="btn btn-primary" onClick={handleSavePreferences}>
                   <FiSave />
                   Save Changes
                 </button>
@@ -206,15 +286,36 @@ export default function SettingsTab() {
                     <label className="form-label">Email Notifications</label>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <input type="checkbox" id="emailBudget" defaultChecked />
+                        <input
+                          type="checkbox"
+                          id="emailBudget"
+                          checked={notificationsData.email_notifications}
+                          onChange={(e) =>
+                            setNotificationsData({ ...notificationsData, email_notifications: e.target.checked })
+                          }
+                        />
                         <label htmlFor="emailBudget">Budget alerts</label>
                       </div>
                       <div className="flex items-center gap-2">
-                        <input type="checkbox" id="emailReport" defaultChecked />
+                        <input
+                          type="checkbox"
+                          id="emailReport"
+                          checked={notificationsData.email_notifications}
+                          onChange={(e) =>
+                            setNotificationsData({ ...notificationsData, email_notifications: e.target.checked })
+                          }
+                        />
                         <label htmlFor="emailReport">Monthly reports</label>
                       </div>
                       <div className="flex items-center gap-2">
-                        <input type="checkbox" id="emailTips" />
+                        <input
+                          type="checkbox"
+                          id="emailTips"
+                          checked={notificationsData.email_notifications}
+                          onChange={(e) =>
+                            setNotificationsData({ ...notificationsData, email_notifications: e.target.checked })
+                          }
+                        />
                         <label htmlFor="emailTips">Saving tips and recommendations</label>
                       </div>
                     </div>
@@ -223,15 +324,36 @@ export default function SettingsTab() {
                     <label className="form-label">Push Notifications</label>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <input type="checkbox" id="pushTransaction" defaultChecked />
+                        <input
+                          type="checkbox"
+                          id="pushTransaction"
+                          checked={notificationsData.push_notifications}
+                          onChange={(e) =>
+                            setNotificationsData({ ...notificationsData, push_notifications: e.target.checked })
+                          }
+                        />
                         <label htmlFor="pushTransaction">New transactions</label>
                       </div>
                       <div className="flex items-center gap-2">
-                        <input type="checkbox" id="pushBudget" defaultChecked />
+                        <input
+                          type="checkbox"
+                          id="pushBudget"
+                          checked={notificationsData.push_notifications}
+                          onChange={(e) =>
+                            setNotificationsData({ ...notificationsData, push_notifications: e.target.checked })
+                          }
+                        />
                         <label htmlFor="pushBudget">Budget alerts</label>
                       </div>
                       <div className="flex items-center gap-2">
-                        <input type="checkbox" id="pushBill" defaultChecked />
+                        <input
+                          type="checkbox"
+                          id="pushBill"
+                          checked={notificationsData.push_notifications}
+                          onChange={(e) =>
+                            setNotificationsData({ ...notificationsData, push_notifications: e.target.checked })
+                          }
+                        />
                         <label htmlFor="pushBill">Bill reminders</label>
                       </div>
                     </div>
@@ -247,7 +369,7 @@ export default function SettingsTab() {
                 </div>
               </div>
               <div className="card-footer">
-                <button className="btn btn-primary">
+                <button className="btn btn-primary" onClick={handleSaveNotifications}>
                   <FiSave />
                   Save Changes
                 </button>

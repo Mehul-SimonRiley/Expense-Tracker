@@ -1,5 +1,5 @@
 # filepath: backend/models/category.py
-from main import db
+from extensions import db
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)

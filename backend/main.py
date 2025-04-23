@@ -1,15 +1,17 @@
 from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from flask_sqlalchemy import SQLAlchemy
 from config import Config
+from extensions import db  # Import db from extensions.py
 
-# Initialize Flask app and extensions
+# Initialize Flask app
 app = Flask(__name__)
 app.config.from_object(Config)
 CORS(app)
 JWTManager(app)
-db = SQLAlchemy(app)
+
+# Initialize extensions
+db.init_app(app)
 
 # Import routes after initializing db to avoid circular imports
 from routes import auth, transactions, categories, budgets

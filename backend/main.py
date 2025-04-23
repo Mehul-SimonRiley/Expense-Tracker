@@ -9,7 +9,7 @@ from flask_migrate import Migrate  # Import Flask-Migrate
 # Initialize Flask app
 app = Flask(__name__)
 app.config.from_object(Config)
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)  # Allow all origins and support credentials
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 JWTManager(app)
 
 # Initialize extensions

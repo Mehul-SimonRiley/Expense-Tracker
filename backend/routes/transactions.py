@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.transaction import Transaction
 from extensions import db
 from datetime import datetime
+from models.category import Category
 
 bp = Blueprint("transactions", __name__)
 
@@ -11,15 +12,15 @@ bp = Blueprint("transactions", __name__)
 def get_transactions():
     try:
         user_id = get_jwt_identity()
-        transactions = Transaction.query.filter_by(user_id=user_id).all()
+        transactions = db.session.query(Transaction, Category.name).join(Category, Transaction.category_id == Category.id).filter(Transaction.user_id == user_id).all()
         return jsonify({"transactions": [{
             "id": t.id,
             "description": t.description,
-            "category_id": t.category_id,
+            "category": category_name,
             "amount": t.amount,
             "type": t.type,
             "date": t.date
-        } for t in transactions]})
+        } for t, category_name in transactions]})
     except Exception as e:
         return jsonify({"error": "An error occurred while fetching transactions.", "details": str(e)}), 500
 
@@ -29,11 +30,20 @@ def add_transaction():
     try:
         user_id = get_jwt_identity()
         data = request.json
+        # Accept either category_id or category (name)
+        category_id = data.get("category_id")
+        if not category_id and "category" in data:
+            category_obj = Category.query.filter_by(name=data["category"]).first()
+            if not category_obj:
+                return jsonify({"error": "Category not found"}), 400
+            category_id = category_obj.id
+        if not category_id:
+            return jsonify({"error": "Category is required"}), 400
         transaction_date = datetime.strptime(data["date"], "%Y-%m-%d").date()
         transaction = Transaction(
             user_id=user_id,
             description=data["description"],
-            category_id=data["category_id"],
+            category_id=category_id,
             amount=data["amount"],
             type=data["type"],
             date=transaction_date

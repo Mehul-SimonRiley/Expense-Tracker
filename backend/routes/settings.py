@@ -7,6 +7,7 @@ bp = Blueprint("settings", __name__)
 
 # Update Profile
 @bp.route("/profile", methods=["PUT"])
+@bp.route("/profile/", methods=["PUT"])
 @jwt_required()
 def update_profile():
     try:
@@ -25,6 +26,7 @@ def update_profile():
 
 # Update Preferences
 @bp.route("/preferences", methods=["PUT"])
+@bp.route("/preferences/", methods=["PUT"])
 @jwt_required()
 def update_preferences():
     try:
@@ -46,6 +48,7 @@ def update_preferences():
 
 # Update Notifications
 @bp.route("/notifications", methods=["PUT"])
+@bp.route("/notifications/", methods=["PUT"])
 @jwt_required()
 def update_notifications():
     try:
@@ -65,6 +68,7 @@ def update_notifications():
 
 # Data Backup
 @bp.route("/backup", methods=["POST"])
+@bp.route("/backup/", methods=["POST"])
 @jwt_required()
 def create_backup():
     try:
@@ -76,6 +80,7 @@ def create_backup():
 
 # Data Restore
 @bp.route("/restore", methods=["POST"])
+@bp.route("/restore/", methods=["POST"])
 @jwt_required()
 def restore_backup():
     try:
@@ -87,6 +92,7 @@ def restore_backup():
 
 # Delete Account
 @bp.route("/account", methods=["DELETE"])
+@bp.route("/account/", methods=["DELETE"])
 @jwt_required()
 def delete_account():
     try:

@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.transaction import Transaction
 from extensions import db
+from datetime import datetime
 
 bp = Blueprint("transactions", __name__)
 
@@ -24,13 +25,17 @@ def get_transactions():
 def add_transaction():
     user_id = get_jwt_identity()
     data = request.json
+
+    # Convert the date string to a Python date object
+    transaction_date = datetime.strptime(data["date"], "%Y-%m-%d").date()
+
     transaction = Transaction(
         user_id=user_id,
         description=data["description"],
         category_id=data["category_id"],
         amount=data["amount"],
         type=data["type"],
-        date=data["date"]
+        date=transaction_date  # Use the converted date object
     )
     db.session.add(transaction)
     db.session.commit()

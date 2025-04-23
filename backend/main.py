@@ -27,5 +27,10 @@ with app.app_context():
     db.create_all()
     print("Database tables created successfully!")
 
+# Default route
+@app.route("/")
+def index():
+    return "Welcome to the Expense Tracker API!"
+
 if __name__ == "__main__":
     app.run(debug=True)

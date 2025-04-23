@@ -9,7 +9,16 @@ bp = Blueprint("auth", __name__)
 @bp.route("/register", methods=["POST"])
 def register():
     data = request.json
+
+    # Check if the email already exists
+    existing_user = User.query.filter_by(email=data["email"]).first()
+    if existing_user:
+        return jsonify({"message": "Email already registered"}), 400
+
+    # Hash the password
     hashed_password = generate_password_hash(data["password"])
+
+    # Create a new user
     user = User(
         name=data["name"],
         email=data["email"],
@@ -25,6 +34,7 @@ def login():
     data = request.json
     user = User.query.filter_by(email=data["email"]).first()
     if user and check_password_hash(user.password_hash, data["password"]):
-        access_token = create_access_token(identity=user.id)
+        # Convert user.id to a string
+        access_token = create_access_token(identity=str(user.id))
         return jsonify({"access_token": access_token}), 200
     return jsonify({"message": "Invalid credentials"}), 401

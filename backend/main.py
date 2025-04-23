@@ -3,6 +3,7 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from config import Config
 from extensions import db  # Import db from extensions.py
+from routes import auth, transactions, categories, budgets, dashboard, calendar, reports, settings
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -21,6 +22,10 @@ app.register_blueprint(auth.bp, url_prefix="/auth")
 app.register_blueprint(transactions.bp, url_prefix="/transactions")
 app.register_blueprint(categories.bp, url_prefix="/categories")
 app.register_blueprint(budgets.bp, url_prefix="/budgets")
+app.register_blueprint(dashboard.bp, url_prefix="/dashboard")
+app.register_blueprint(calendar.bp, url_prefix="/calendar")
+app.register_blueprint(reports.bp, url_prefix="/reports")
+app.register_blueprint(settings.bp, url_prefix="/settings")
 
 # Create database tables
 with app.app_context():

@@ -7,6 +7,31 @@ import {
   getCategoryBreakdown, 
   getSpendingTrends 
 } from '../services/reportsService';
+import { Bar, Pie, Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 export default function ReportsTab() {
   const [reportType, setReportType] = useState("expense-income")
@@ -19,15 +44,15 @@ export default function ReportsTab() {
     const fetchReportData = async () => {
       setIsLoading(true);
       try {
-        let data;
+        let response;
         if (reportType === "expense-income") {
-          data = await getExpenseVsIncome(timeRange);
+          response = await getExpenseVsIncome(timeRange);
         } else if (reportType === "category-breakdown") {
-          data = await getCategoryBreakdown(timeRange);
+          response = await getCategoryBreakdown(timeRange);
         } else if (reportType === "spending-trends") {
-          data = await getSpendingTrends(timeRange);
+          response = await getSpendingTrends(timeRange);
         }
-        setReportData(data || []);
+        setReportData((response && response.data) || {});
         setError(null);
       } catch (err) {
         console.error("Error fetching report data:", err);
@@ -110,8 +135,25 @@ export default function ReportsTab() {
               </div>
               <div className="card-content">
                 <div style={{ height: "300px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <FiBarChart2 style={{ width: "60px", height: "60px", color: "var(--text-muted)" }} />
-                  <p style={{ marginLeft: "10px" }}>Expense vs Income chart will appear here</p>
+                  <Bar
+                    data={{
+                      labels: (reportData.monthlyComparison || []).map(m => m.name),
+                      datasets: [
+                        {
+                          label: 'Income',
+                          data: (reportData.monthlyComparison || []).map(m => m.income),
+                          backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                        },
+                        {
+                          label: 'Expenses',
+                          data: (reportData.monthlyComparison || []).map(m => m.expenses),
+                          backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                        },
+                      ],
+                    }}
+                    options={{ responsive: true, plugins: { legend: { position: 'top' } } }}
+                    height={300}
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
@@ -174,8 +216,19 @@ export default function ReportsTab() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div>
                     <div style={{ height: "300px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <FiPieChart style={{ width: "60px", height: "60px", color: "var(--text-muted)" }} />
-                      <p style={{ marginLeft: "10px" }}>Category breakdown chart will appear here</p>
+                      <Pie
+                        data={{
+                          labels: (reportData.topCategories || []).map(c => c.name),
+                          datasets: [{
+                            data: (reportData.topCategories || []).map(c => c.amount),
+                            backgroundColor: [
+                              '#f87171', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa', '#f472b6', '#facc15'
+                            ],
+                          }],
+                        }}
+                        options={{ responsive: true, plugins: { legend: { position: 'right' } } }}
+                        height={300}
+                      />
                     </div>
                   </div>
 
@@ -212,8 +265,20 @@ export default function ReportsTab() {
               </div>
               <div className="card-content">
                 <div style={{ height: "300px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <FiTrendingUp style={{ width: "60px", height: "60px", color: "var(--text-muted)" }} />
-                  <p style={{ marginLeft: "10px" }}>Spending trends chart will appear here</p>
+                  <Line
+                    data={{
+                      labels: (reportData.monthlySpending || []).map(m => m.name),
+                      datasets: [{
+                        label: 'Spending',
+                        data: (reportData.monthlySpending || []).map(m => m.amount),
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                        tension: 0.3,
+                      }],
+                    }}
+                    options={{ responsive: true, plugins: { legend: { position: 'top' } } }}
+                    height={300}
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">

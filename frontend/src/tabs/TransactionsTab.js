@@ -230,6 +230,15 @@ export default function TransactionsTab({ onError }) {
           </button>
           {filterOpen && (
             <div className="absolute bg-white p-4 rounded-lg shadow-lg z-10 mt-2">
+              <div className="flex justify-end mb-2">
+                <button
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => setFilterOpen(false)}
+                  aria-label="Close Filters"
+                >
+                  <FiX />
+                </button>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">

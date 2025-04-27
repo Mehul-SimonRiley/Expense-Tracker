@@ -24,7 +24,7 @@ class Config:
     CACHE_DEFAULT_TIMEOUT = 300
     
     # Rate Limiting
-    RATELIMIT_DEFAULT = "1000 per day;500 per hour;10 per second"
+    RATELIMIT_DEFAULT = "1000000 per day;100000 per hour;1000 per second"
     RATELIMIT_STORAGE_URL = "memory://"
     
     # CORS settings

@@ -1,9 +1,13 @@
-import { reportsAPI } from "./api";
+import { reportsAPI } from './api';
 
-const reportsService = {
-  getExpenseVsIncome: () => reportsAPI.get("/reports/expense-vs-income"),
-  getCategoryBreakdown: () => reportsAPI.get("/reports/category-breakdown"),
-  getSpendingTrends: () => reportsAPI.get("/reports/spending-trends"),
+export const getExpenseVsIncome = async (timeRange) => {
+  return reportsAPI.getExpenseVsIncome(timeRange);
 };
 
-export default reportsService;
+export const getCategoryBreakdown = async (timeRange) => {
+  return reportsAPI.getCategoryBreakdown(timeRange);
+};
+
+export const getSpendingTrends = async (timeRange) => {
+  return reportsAPI.getSpendingTrends(timeRange);
+};

@@ -9,67 +9,89 @@ from sqlalchemy import func
 import logging
 
 logger = logging.getLogger(__name__)
-bp = Blueprint('dashboard', __name__)
+dashboard_bp = Blueprint('dashboard', __name__)
 
-@bp.route('/summary', methods=['GET'])
+@dashboard_bp.route('/summary', methods=['GET'])
 @jwt_required()
 def get_summary():
-    try:
-        user_id = get_jwt_identity()
+    current_user_id = get_jwt_identity()
+    
+    # Get current month's start and end dates
+    today = datetime.now().date()
+    month_start = today.replace(day=1)
+    next_month = month_start.replace(day=28) + timedelta(days=4)
+    month_end = (next_month - timedelta(days=next_month.day)).date()
+    
+    # Calculate total income and expenses for current month
+    monthly_totals = db.session.query(
+        Transaction.type,
+        func.sum(Transaction.amount).label('total')
+    ).filter(
+        Transaction.user_id == current_user_id,
+        Transaction.date >= month_start,
+        Transaction.date <= month_end
+    ).group_by(Transaction.type).all()
+    
+    # Calculate budget status
+    budgets = Budget.query.filter(
+        Budget.user_id == current_user_id,
+        Budget.start_date <= month_end,
+        Budget.end_date >= month_start
+    ).all()
+    
+    budget_status = []
+    for budget in budgets:
+        spent = db.session.query(func.sum(Transaction.amount)).filter(
+            Transaction.user_id == current_user_id,
+            Transaction.category_id == budget.category_id,
+            Transaction.type == 'expense',
+            Transaction.date >= budget.start_date,
+            Transaction.date <= budget.end_date
+        ).scalar() or 0.0
         
-        # Get current month's start and end dates
-        today = datetime.utcnow()
-        start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        if today.month == 12:
-            end_of_month = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
-        else:
-            end_of_month = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
-        
-        # Get transactions for current month
-        transactions = Transaction.query.filter(
-            Transaction.user_id == user_id,
-            Transaction.date >= start_of_month,
-            Transaction.date <= end_of_month
-        ).all()
-        
-        # Calculate totals
-        total_income = sum(t.amount for t in transactions if t.type == 'income')
-        total_expenses = sum(t.amount for t in transactions if t.type == 'expense')
-        current_balance = total_income - total_expenses
-        savings = total_income * 0.1  # Assuming 10% savings target
-        
-        # Get previous month's data for trends
-        prev_month_start = (start_of_month - timedelta(days=1)).replace(day=1)
-        prev_month_transactions = Transaction.query.filter(
-            Transaction.user_id == user_id,
-            Transaction.date >= prev_month_start,
-            Transaction.date < start_of_month
-        ).all()
-        
-        prev_income = sum(t.amount for t in prev_month_transactions if t.type == 'income')
-        prev_expenses = sum(t.amount for t in prev_month_transactions if t.type == 'expense')
-        
-        # Calculate trends
-        income_trend = calculate_trend(total_income, prev_income)
-        expense_trend = calculate_trend(total_expenses, prev_expenses)
-        balance_trend = calculate_trend(current_balance, prev_income - prev_expenses)
-        
-        return jsonify({
-            'totalIncome': total_income,
-            'totalExpenses': total_expenses,
-            'currentBalance': current_balance,
-            'savings': savings,
-            'savingsRate': '10%',
-            'incomeTrend': income_trend,
-            'expenseTrend': expense_trend,
-            'balanceTrend': balance_trend
+        budget_status.append({
+            'category_id': budget.category_id,
+            'category_name': budget.category.name,
+            'budget_amount': budget.amount,
+            'spent': round(spent, 2),
+            'remaining': round(budget.amount - spent, 2),
+            'percentage': round((spent / budget.amount) * 100, 2) if budget.amount > 0 else 0
         })
-        
-    except Exception as e:
-        logger.error(f'Error fetching dashboard summary: {str(e)}')
-        return jsonify({'error': 'Failed to fetch dashboard summary'}), 500
+    
+    # Calculate category breakdown
+    category_breakdown = db.session.query(
+        Category.name,
+        func.sum(Transaction.amount).label('total')
+    ).join(
+        Transaction,
+        Category.id == Transaction.category_id
+    ).filter(
+        Transaction.user_id == current_user_id,
+        Transaction.type == 'expense',
+        Transaction.date >= month_start,
+        Transaction.date <= month_end
+    ).group_by(Category.name).all()
+    
+    # Format the response
+    summary = {
+        'monthly_totals': {
+            'income': 0.0,
+            'expense': 0.0
+        },
+        'budget_status': budget_status,
+        'category_breakdown': [
+            {'name': name, 'total': round(total, 2)}
+            for name, total in category_breakdown
+        ]
+    }
+    
+    # Update monthly totals
+    for type_, total in monthly_totals:
+        summary['monthly_totals'][type_] = round(total, 2)
+    
+    return jsonify(summary)
 
-@bp.route('/recent-transactions', methods=['GET'])
+@dashboard_bp.route('/recent-transactions', methods=['GET'])
 @jwt_required()
 def get_recent_transactions():
     try:
@@ -87,7 +109,7 @@ def get_recent_transactions():
         logger.error(f'Error fetching recent transactions: {str(e)}')
         return jsonify({'error': 'Failed to fetch recent transactions'}), 500
 
-@bp.route('/category-breakdown', methods=['GET'])
+@dashboard_bp.route('/category-breakdown', methods=['GET'])
 @jwt_required()
 def get_category_breakdown():
     try:
@@ -128,7 +150,7 @@ def get_category_breakdown():
         logger.error(f'Error fetching category breakdown: {str(e)}')
         return jsonify({'error': 'Failed to fetch category breakdown'}), 500
 
-@bp.route('/budget-status', methods=['GET'])
+@dashboard_bp.route('/budget-status', methods=['GET'])
 @jwt_required()
 def get_budget_status():
     try:

@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { FiBarChart2, FiDownload, FiPieChart, FiTrendingUp } from "react-icons/fi"
-import reportsService from "../services/reportsService"
+import { 
+  getExpenseVsIncome, 
+  getCategoryBreakdown, 
+  getSpendingTrends 
+} from '../services/reportsService';
 
 export default function ReportsTab() {
   const [reportType, setReportType] = useState("expense-income")
@@ -17,11 +21,11 @@ export default function ReportsTab() {
       try {
         let data;
         if (reportType === "expense-income") {
-          data = await reportsService.getExpenseVsIncome(timeRange);
+          data = await getExpenseVsIncome(timeRange);
         } else if (reportType === "category-breakdown") {
-          data = await reportsService.getCategoryBreakdown(timeRange);
+          data = await getCategoryBreakdown(timeRange);
         } else if (reportType === "spending-trends") {
-          data = await reportsService.getSpendingTrends(timeRange);
+          data = await getSpendingTrends(timeRange);
         }
         setReportData(data || []);
         setError(null);

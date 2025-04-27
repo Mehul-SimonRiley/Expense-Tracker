@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { FiChevronLeft, FiChevronRight, FiPlus } from "react-icons/fi"
-import calendarService from "../services/calendarService"
+import { getTransactions } from '../services/calendarService'
 
 export default function CalendarTab() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -15,7 +15,7 @@ export default function CalendarTab() {
       try {
         const year = currentMonth.getFullYear();
         const month = currentMonth.getMonth() + 1; // JavaScript months are 0-indexed
-        const data = await calendarService.getTransactions({ year, month });
+        const data = await getTransactions({ year, month });
         setTransactions(data);
       } catch (error) {
         console.error("Error fetching calendar transactions:", error);

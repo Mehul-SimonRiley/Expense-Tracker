@@ -1,7 +1,8 @@
-import { categoriesAPI } from "./api";
+import { transactionsAPI } from './api';
 
-const calendarService = {
-  getTransactions: (params) => categoriesAPI.get("/calendar/transactions", { params }),
+export const getTransactions = async (startDate, endDate) => {
+  return transactionsAPI.getAll({
+    start_date: startDate,
+    end_date: endDate
+  });
 };
-
-export default calendarService;

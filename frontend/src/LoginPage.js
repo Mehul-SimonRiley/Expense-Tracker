@@ -19,24 +19,23 @@ export default function LoginPage({ onLogin }) {
     setLoading(true)
 
     try {
-      let response;
+      let response
       if (isLogin) {
-        response = await api.post("/auth/login", { email, password });
+        response = await api.post("/auth/login", { email, password })
       } else {
-        response = await api.post("/auth/register", { email, password, name });
+        response = await api.post("/auth/register", { email, password, name })
       }
 
-      const { access_token, user } = response.data;
-      localStorage.setItem("token", access_token);
-      onLogin(access_token);
-
+      const { access_token } = response.data
+      localStorage.setItem("token", access_token) // Save token to localStorage
+      onLogin(access_token) // Pass token to App component
     } catch (error) {
-      console.error("Auth error:", error);
-      setError(error.response?.data?.error || error.message || "Authentication failed");
+      console.error("Auth error:", error)
+      setError(error.response?.data?.msg || "Authentication failed")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <div className="login-container">

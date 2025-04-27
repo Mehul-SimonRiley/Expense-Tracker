@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
-from extensions import db, jwt, cache, limiter, migrate
+from extensions import db, jwt, cache, migrate
 from config import Config
 import logging
 from middleware.cors import handle_options_request
@@ -35,7 +35,6 @@ def create_app():
     db.init_app(app)
     jwt.init_app(app)
     cache.init_app(app)
-    limiter.init_app(app)
     migrate.init_app(app, db)
 
     # Add CORS middleware

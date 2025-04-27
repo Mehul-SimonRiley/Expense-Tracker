@@ -1,8 +1,11 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.user import User
+from models.settings import Settings
 from extensions import db
+import logging
 
+logger = logging.getLogger(__name__)
 bp = Blueprint("settings", __name__)
 
 # Update Profile
@@ -107,3 +110,63 @@ def delete_account():
         return jsonify({"message": "Account deleted successfully"}), 200
     except Exception as e:
         return jsonify({"error": "An error occurred while deleting the account.", "details": str(e)}), 500
+
+@bp.route('/', methods=['GET'])
+@jwt_required()
+def get_settings():
+    try:
+        user_id = get_jwt_identity()
+        settings = Settings.query.filter_by(user_id=user_id).first()
+        
+        if not settings:
+            # Create default settings if none exist
+            settings = Settings(user_id=user_id)
+            db.session.add(settings)
+            db.session.commit()
+            
+        return jsonify(settings.to_dict())
+        
+    except Exception as e:
+        logger.error(f'Error fetching settings: {str(e)}')
+        return jsonify({'error': 'Failed to fetch settings'}), 500
+
+@bp.route('/', methods=['PUT'])
+@jwt_required()
+def update_settings():
+    try:
+        user_id = get_jwt_identity()
+        settings = Settings.query.filter_by(user_id=user_id).first()
+        
+        if not settings:
+            settings = Settings(user_id=user_id)
+            db.session.add(settings)
+            
+        data = request.get_json()
+        
+        # Update fields
+        if 'theme' in data:
+            settings.theme = data['theme']
+        if 'language' in data:
+            settings.language = data['language']
+        if 'date_format' in data:
+            settings.date_format = data['date_format']
+        if 'start_of_week' in data:
+            settings.start_of_week = data['start_of_week']
+        if 'email_notifications' in data:
+            settings.email_notifications = data['email_notifications']
+        if 'push_notifications' in data:
+            settings.push_notifications = data['push_notifications']
+        if 'currency' in data:
+            settings.currency = data['currency']
+            
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Settings updated successfully',
+            'settings': settings.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f'Error updating settings: {str(e)}')
+        db.session.rollback()
+        return jsonify({'error': 'Failed to update settings'}), 500

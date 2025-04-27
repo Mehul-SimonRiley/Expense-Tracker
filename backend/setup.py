@@ -1,0 +1,30 @@
+from setuptools import setup, find_packages
+
+setup(
+    name="expense-tracker",
+    version="1.0.0",
+    packages=find_packages(),
+    install_requires=[
+        "Flask==2.2.5",
+        "Flask-SQLAlchemy==3.0.5",
+        "Flask-JWT-Extended==4.4.4",
+        "Flask-Cors==3.0.10",
+        "Flask-Migrate==4.0.4",
+        "Flask-Caching==2.0.2",
+        "Flask-Limiter==3.3.0",
+        "xlsxwriter==3.1.2",
+        "python-dotenv==0.21.1",
+        "Werkzeug==2.2.3",
+        "SQLAlchemy==1.4.46",
+        "PyJWT==2.6.0",
+        "APScheduler==3.9.1",
+        "redis==4.5.5",
+        "celery==5.2.7",
+        "pandas==2.2.3",
+    ],
+    python_requires=">=3.8",
+    setup_requires=[
+        "wheel",
+        "setuptools>=69.0.3",
+    ],
+) 

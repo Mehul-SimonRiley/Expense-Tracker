@@ -1,34 +1,51 @@
 from flask import Flask
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager
+from extensions import db, jwt, cache, limiter, migrate
 from config import Config
-from extensions import db
-from routes import auth, transactions, categories, budgets, dashboard, calendar, reports, settings
-from flask_migrate import Migrate
+import logging
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True)
+from routes.auth import auth_bp
+app.register_blueprint(auth_bp, url_prefix="/auth/login")
 
-app.config.from_object(Config)
-CORS(app, resources={r"/api/*": {"origins": "*"}})
-JWTManager(app)
+# Basic logging configuration
+logging.basicConfig(level=logging.INFO)
 
-db.init_app(app)
-migrate = Migrate(app, db)
+def create_app():
+    app = Flask(__name__, instance_relative_config=True)
+    app.config.from_object(Config)
 
-from routes import auth, transactions, categories, budgets
-app.register_blueprint(auth.bp, url_prefix="/auth")
-app.register_blueprint(transactions.bp, url_prefix="/transactions")
-app.register_blueprint(categories.bp, url_prefix="/categories")
-app.register_blueprint(budgets.bp, url_prefix="/budgets")
-app.register_blueprint(dashboard.bp, url_prefix="/dashboard")
-app.register_blueprint(calendar.bp, url_prefix="/calendar")
-app.register_blueprint(reports.bp, url_prefix="/reports")
-app.register_blueprint(settings.bp, url_prefix="/settings")
+    # Ensure instance folder exists
+    try:
+        import os
+        os.makedirs(app.instance_path)
+    except OSError:
+        pass
 
-@app.route("/")
-def index():
-    return "Welcome to the Expense Tracker API!"
+    # Initialize extensions
+    CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+    db.init_app(app)
+    jwt.init_app(app)
+    cache.init_app(app)
+    limiter.init_app(app)
+    migrate.init_app(app, db)
 
-if __name__ == "__main__":
+    # Register blueprints
+    from routes.auth import auth_bp
+    from routes.transactions import transactions_bp
+    from routes.categories import categories_bp
+    from routes.budgets import budgets_bp
+    from routes.reports import reports_bp
+
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(transactions_bp, url_prefix='/api/transactions')
+    app.register_blueprint(categories_bp, url_prefix='/api/categories')
+    app.register_blueprint(budgets_bp, url_prefix='/api/budgets')
+    app.register_blueprint(reports_bp, url_prefix='/api/reports')
+
+    return app
+
+app = create_app()
+
+if __name__ == '__main__':
     app.run(debug=True)

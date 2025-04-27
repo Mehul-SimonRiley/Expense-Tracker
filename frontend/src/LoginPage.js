@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { FiDollarSign, FiMail, FiLock, FiUser, FiAlertCircle } from "react-icons/fi"
+import api from "./services/api"
 import "./LoginPage.css"
 
 export default function LoginPage({ onLogin }) {
@@ -18,36 +19,24 @@ export default function LoginPage({ onLogin }) {
     setLoading(true)
 
     try {
+      let response;
       if (isLogin) {
-        // Call backend /auth/login
-        const response = await fetch("http://localhost:5000/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message || "Login failed");
-        // Store token and call onLogin
-        localStorage.setItem("token", data.access_token);
-        onLogin();
+        response = await api.post("/auth/login", { email, password });
       } else {
-        // Call backend /auth/register
-        const response = await fetch("http://localhost:5000/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, password, phone: "" }),
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message || "Registration failed");
-        setIsLogin(true);
-        setError("Registration successful! Please log in.");
+        response = await api.post("/auth/register", { email, password, name });
       }
+
+      const { access_token, user } = response.data;
+      localStorage.setItem("token", access_token);
+      onLogin(access_token);
+
     } catch (error) {
-      setError(error.message || "Authentication failed. Please try again.");
+      console.error("Auth error:", error);
+      setError(error.response?.data?.error || error.message || "Authentication failed");
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="login-container">

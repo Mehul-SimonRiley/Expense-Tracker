@@ -32,7 +32,7 @@ export default function TransactionsTab({ onError }) {
     description: "",
     amount: "",
     date: new Date().toISOString().split("T")[0],
-    category: "",
+    category_id: "",
     type: "expense",
     notes: "",
   })
@@ -44,6 +44,7 @@ export default function TransactionsTab({ onError }) {
 
   const fetchData = async () => {
     setIsLoading(true)
+    setError(null)
     try {
       // Fetch categories first for the dropdown
       const categoriesData = await categoriesAPI.getAll()
@@ -51,12 +52,12 @@ export default function TransactionsTab({ onError }) {
 
       // Then fetch transactions
       await fetchTransactions()
-
-      if (onError) onError(null)
     } catch (err) {
       console.error("Error fetching initial data:", err)
       setError("Failed to load transactions data")
       if (onError) onError("Failed to load transactions data")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -68,12 +69,43 @@ export default function TransactionsTab({ onError }) {
 
   const fetchTransactions = async () => {
     setIsLoading(true)
+    setError(null)
     try {
-      const data = await transactionsAPI.getAll()
-      setTransactions(Array.isArray(data) ? data : [])
+      // Map frontend filters to backend filters
+      const backendFilters = {}
+      if (filters.category !== "all") {
+        backendFilters.category = filters.category
+      }
+      if (filters.type !== "all") {
+        backendFilters.type = filters.type
+      }
+      if (filters.dateRange !== "all") {
+        const today = new Date()
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+        backendFilters.start_date = startOfMonth.toISOString().split('T')[0]
+        backendFilters.end_date = today.toISOString().split('T')[0]
+      }
+
+      const data = await transactionsAPI.getAll(backendFilters)
+      console.log("Fetched transactions:", data) // Debug log
+      
+      // Transform the data to match the frontend's expected format
+      const transactions = Array.isArray(data) ? data.map(transaction => ({
+        id: transaction.id,
+        description: transaction.description,
+        amount: transaction.amount,
+        date: transaction.date,
+        category: transaction.category_id,
+        type: transaction.type,
+        notes: transaction.description, // Using description as notes for now
+        created_at: transaction.created_at,
+        updated_at: transaction.updated_at
+      })) : []
+      
+      setTransactions(transactions)
       
       // Calculate summary
-      const summary = data.reduce((acc, transaction) => {
+      const summary = transactions.reduce((acc, transaction) => {
         if (transaction.type === 'income') {
           acc.totalIncome += Number(transaction.amount)
         } else {
@@ -84,10 +116,10 @@ export default function TransactionsTab({ onError }) {
       
       summary.netFlow = summary.totalIncome - summary.totalExpenses
       setSummary(summary)
-      setError(null)
     } catch (err) {
       console.error("Error fetching transactions:", err)
       setError("Failed to load transactions")
+      if (onError) onError("Failed to load transactions")
     } finally {
       setIsLoading(false)
     }
@@ -95,12 +127,21 @@ export default function TransactionsTab({ onError }) {
 
   const handleAddTransaction = async () => {
     try {
-      await transactionsAPI.create(newTransaction)
+      // Transform the data to match the backend's expected format
+      const transactionData = {
+        description: newTransaction.description,
+        amount: parseFloat(newTransaction.amount),
+        date: newTransaction.date,
+        category_id: parseInt(newTransaction.category_id),
+        type: newTransaction.type,
+      }
+
+      await transactionsAPI.create(transactionData)
       setNewTransaction({
         description: "",
         amount: "",
         date: new Date().toISOString().split("T")[0],
-        category: "",
+        category_id: "",
         type: "expense",
         notes: "",
       })
@@ -322,9 +363,9 @@ export default function TransactionsTab({ onError }) {
               </label>
               <select
                 className="form-select w-full"
-                value={newTransaction.category}
+                value={newTransaction.category_id}
                 onChange={(e) =>
-                  setNewTransaction({ ...newTransaction, category: e.target.value })
+                  setNewTransaction({ ...newTransaction, category_id: e.target.value })
                 }
               >
                 <option value="">Select Category</option>

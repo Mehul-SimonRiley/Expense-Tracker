@@ -29,6 +29,10 @@ api.interceptors.response.use(
       // Don't reload the page, just redirect to login
       window.location.href = '/';
       return Promise.reject(new Error("Unauthorized"));
+    } else if (error.response?.status === 429) {
+      // Handle rate limit error
+      console.warn("Rate limit exceeded. Please wait a moment before trying again.");
+      return Promise.reject(new Error("Rate limit exceeded. Please wait a moment before trying again."));
     }
     return Promise.reject(error);
   }
@@ -39,24 +43,54 @@ export default api;
 // Transactions API
 export const transactionsAPI = {
   getAll: async (filters = {}) => {
-    const queryParams = new URLSearchParams()
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value) queryParams.append(key, value)
-    })
-    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : ""
-    return api.get(`/transactions${queryString}`)
+    try {
+      const queryParams = new URLSearchParams()
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) queryParams.append(key, value)
+      })
+      const queryString = queryParams.toString() ? `?${queryParams.toString()}` : ""
+      const response = await api.get(`/transactions${queryString}`)
+      return response.data || []
+    } catch (error) {
+      console.error('Error fetching transactions:', error)
+      return []
+    }
   },
   getById: async (id) => {
-    return api.get(`/transactions/${id}`)
+    try {
+      const response = await api.get(`/transactions/${id}`)
+      return response.data
+    } catch (error) {
+      console.error('Error fetching transaction:', error)
+      throw error
+    }
   },
   create: async (transactionData) => {
-    return api.post("/transactions", transactionData)
+    try {
+      const response = await api.post("/transactions", transactionData)
+      return response.data
+    } catch (error) {
+      console.error('Error creating transaction:', error)
+      throw error
+    }
   },
   update: async (id, transactionData) => {
-    return api.put(`/transactions/${id}`, transactionData)
+    try {
+      const response = await api.put(`/transactions/${id}`, transactionData)
+      return response.data
+    } catch (error) {
+      console.error('Error updating transaction:', error)
+      throw error
+    }
   },
   delete: async (id) => {
-    return api.delete(`/transactions/${id}`)
+    try {
+      await api.delete(`/transactions/${id}`)
+      return true
+    } catch (error) {
+      console.error('Error deleting transaction:', error)
+      throw error
+    }
   },
 }
 

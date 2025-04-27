@@ -31,7 +31,7 @@ class Config:
     CORS_HEADERS = 'Content-Type'
     
     # CORS
-    CORS_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    CORS_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5000", "http://127.0.0.1:5000"]
     CORS_METHODS = ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"]
     CORS_ALLOW_HEADERS = ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
     CORS_EXPOSE_HEADERS = ["Content-Type", "Authorization"]

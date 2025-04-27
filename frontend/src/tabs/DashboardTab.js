@@ -1,8 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { FiBarChart2, FiCreditCard, FiDollarSign, FiDownload, FiPieChart, FiPlus } from "react-icons/fi"
 import { dashboardAPI, transactionsAPI, categoriesAPI, budgetsAPI } from "../services/api"
+import { formatCurrency, formatDate, formatPercentage } from '../utils/format'
+import { LineChart, BarChart, PieChart, createExpenseBreakdownData, createTrendData, createBudgetVsActualData } from '../components/Charts'
 
 export default function DashboardTab({ onError }) {
   const [timeframe, setTimeframe] = useState("month")
@@ -102,16 +104,6 @@ export default function DashboardTab({ onError }) {
     fetchDashboardData()
   }, [timeframe, onError])
 
-  // Format currency
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount || 0)
-  }
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -207,52 +199,33 @@ export default function DashboardTab({ onError }) {
               </button>
             </div>
           </div>
-          <div className="card-content">
-            <div style={{ height: "240px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <FiBarChart2 style={{ width: "40px", height: "40px", color: "var(--text-muted)" }} />
-              <p style={{ marginLeft: "10px" }}>Expense chart will appear here</p>
-            </div>
+          <div className="card-content" style={{ height: '300px' }}>
+            {dashboardData.categoryBreakdown.length > 0 ? (
+              <PieChart
+                data={createExpenseBreakdownData(dashboardData.categoryBreakdown)}
+                title="Expense Distribution"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <FiPieChart style={{ width: "40px", height: "40px", color: "var(--text-muted)" }} />
+                <p className="ml-2">No expense data available</p>
+              </div>
+            )}
           </div>
         </div>
         <div className="card">
           <div className="card-header">
             <h2 className="card-title">Budget Status</h2>
           </div>
-          <div className="card-content">
-            {dashboardData.budgetStatus.length === 0 ? (
+          <div className="card-content" style={{ height: '300px' }}>
+            {dashboardData.budgetStatus.length > 0 ? (
+              <BarChart
+                data={createBudgetVsActualData(dashboardData.budgetStatus)}
+                title="Budget vs Actual"
+              />
+            ) : (
               <div className="text-center py-4 text-muted">
                 No budget data available. Set up budgets in the Budget tab.
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                {dashboardData.budgetStatus.map((budget, index) => (
-                  <div key={index}>
-                    <div className="flex justify-between mb-2">
-                      <span className="text-sm font-medium">{budget.category}</span>
-                      <span className="text-sm font-medium">
-                        {formatCurrency(budget.spent)}/{formatCurrency(budget.limit)}
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        height: "8px",
-                        backgroundColor: "var(--border-color)",
-                        borderRadius: "9999px",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: `${Math.min(budget.percentage || 0, 100)}%`,
-                          height: "100%",
-                          backgroundColor:
-                            (budget.percentage || 0) > 100 ? "var(--expense-color)" : "var(--primary-color)",
-                          borderRadius: "9999px",
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
           </div>
@@ -295,7 +268,7 @@ export default function DashboardTab({ onError }) {
                     <div style={{ flex: 1 }}>
                       <p className="text-sm font-medium">{transaction.description}</p>
                       <p className="text-xs text-muted">
-                        {new Date(transaction.date).toLocaleDateString()} • {transaction.category}
+                        {formatDate(transaction.date)} • {transaction.category}
                       </p>
                     </div>
                     <div
@@ -316,9 +289,7 @@ export default function DashboardTab({ onError }) {
               className="btn btn-primary"
               style={{ width: "100%" }}
               onClick={() => {
-                // Navigate to transactions tab and open add form
                 document.querySelector('button[data-tab="transactions"]')?.click()
-                // You could also set a state to open the add transaction form
               }}
             >
               <FiPlus style={{ width: "1rem", height: "1rem" }} />
@@ -328,38 +299,18 @@ export default function DashboardTab({ onError }) {
         </div>
         <div className="card">
           <div className="card-header">
-            <h2 className="card-title">Expense by Category</h2>
+            <h2 className="card-title">Expense Trends</h2>
           </div>
-          <div className="card-content">
-            {dashboardData.categoryBreakdown.length === 0 ? (
-              <div className="text-center py-4 text-muted">
-                No category data available. Add categories in the Categories tab.
-              </div>
+          <div className="card-content" style={{ height: '300px' }}>
+            {dashboardData.expenseTrends?.length > 0 ? (
+              <LineChart
+                data={createTrendData(dashboardData.expenseTrends, "Expense Trend")}
+                title="Monthly Expense Trend"
+              />
             ) : (
-              <>
-                <div style={{ height: "200px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <FiPieChart style={{ width: "40px", height: "40px", color: "var(--text-muted)" }} />
-                </div>
-                <div style={{ marginTop: "1rem" }}>
-                  {dashboardData.categoryBreakdown.map((category, index) => (
-                    <div key={index} className="flex items-center mb-2">
-                      <div
-                        style={{
-                          width: "12px",
-                          height: "12px",
-                          borderRadius: "50%",
-                          backgroundColor: category.color || `hsl(${index * 30}, 70%, 50%)`,
-                          marginRight: "8px",
-                        }}
-                      ></div>
-                      <span className="text-sm">
-                        {category.name} -{" "}
-                        {category.percentage || Math.round(100 / dashboardData.categoryBreakdown.length)}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </>
+              <div className="text-center py-4 text-muted">
+                No trend data available
+              </div>
             )}
           </div>
         </div>

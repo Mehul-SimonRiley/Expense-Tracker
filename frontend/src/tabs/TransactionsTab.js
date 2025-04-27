@@ -69,7 +69,21 @@ export default function TransactionsTab({ onError }) {
     setIsLoading(true);
     try {
       const data = await transactionsAPI.getAll();
-      setTransactions(Array.isArray(data.transactions) ? data.transactions : []);
+      // The backend returns an array of transactions directly
+      setTransactions(Array.isArray(data) ? data : []);
+      
+      // Calculate summary
+      const summary = data.reduce((acc, transaction) => {
+        if (transaction.type === 'income') {
+          acc.totalIncome += Number(transaction.amount);
+        } else {
+          acc.totalExpenses += Number(transaction.amount);
+        }
+        return acc;
+      }, { totalIncome: 0, totalExpenses: 0, netFlow: 0 });
+      
+      summary.netFlow = summary.totalIncome - summary.totalExpenses;
+      setSummary(summary);
       setError(null);
     } catch (err) {
       console.error("Error fetching transactions:", err);

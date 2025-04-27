@@ -6,8 +6,7 @@ import logging
 from middleware.cors import handle_options_request
 
 app = Flask(__name__)
-from routes.auth import auth_bp
-app.register_blueprint(auth_bp, url_prefix="/auth/login")
+app.config.from_object(Config)
 
 # Basic logging configuration
 logging.basicConfig(level=logging.INFO)
@@ -26,11 +25,12 @@ def create_app():
     # Initialize extensions
     CORS(app, 
          resources={r"/api/*": {
-             "origins": "http://localhost:3000",
-             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-             "allow_headers": ["Content-Type", "Authorization"],
-             "supports_credentials": True,
-             "max_age": 3600
+             "origins": app.config['CORS_ORIGINS'],
+             "methods": app.config['CORS_METHODS'],
+             "allow_headers": app.config['CORS_ALLOW_HEADERS'],
+             "expose_headers": app.config['CORS_EXPOSE_HEADERS'],
+             "supports_credentials": app.config['CORS_SUPPORTS_CREDENTIALS'],
+             "max_age": app.config['CORS_MAX_AGE']
          }})
     db.init_app(app)
     jwt.init_app(app)
@@ -45,24 +45,27 @@ def create_app():
         if response:
             return response
 
-    # Register blueprints
+    # Register blueprints with /api prefix
     from routes.auth import auth_bp
     from routes.transactions import transactions_bp
     from routes.categories import categories_bp
     from routes.budgets import budgets_bp
-    from routes.reports import reports_bp
     from routes.dashboard import dashboard_bp
+    from routes.reports import reports_bp
+    from routes.calendar import calendar_bp
+    from routes.settings import settings_bp
 
-    app.register_blueprint(auth_bp, url_prefix='/api/auth')
-    app.register_blueprint(transactions_bp, url_prefix='/api/transactions')
-    app.register_blueprint(categories_bp, url_prefix='/api/categories')
-    app.register_blueprint(budgets_bp, url_prefix='/api/budgets')
-    app.register_blueprint(reports_bp, url_prefix='/api/reports')
-    app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
+    app.register_blueprint(auth_bp, url_prefix="/api/auth")
+    app.register_blueprint(transactions_bp, url_prefix="/api/transactions")
+    app.register_blueprint(categories_bp, url_prefix="/api/categories")
+    app.register_blueprint(budgets_bp, url_prefix="/api/budgets")
+    app.register_blueprint(dashboard_bp, url_prefix="/api/dashboard")
+    app.register_blueprint(reports_bp, url_prefix="/api/reports")
+    app.register_blueprint(calendar_bp, url_prefix="/api/calendar")
+    app.register_blueprint(settings_bp, url_prefix="/api/settings")
 
     return app
 
-app = create_app()
-
 if __name__ == '__main__':
-    app.run(debug=True)
+    app = create_app()
+    app.run(debug=True, port=5000)

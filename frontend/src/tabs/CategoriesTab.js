@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { FiEdit2, FiPlus, FiTrash2 } from "react-icons/fi"
 import { categoriesAPI } from "../services/api"
+import { formatCurrency } from "../utils/format"
 
 export default function CategoriesTab() {
   const [categories, setCategories] = useState([])
@@ -22,18 +23,21 @@ export default function CategoriesTab() {
   }, [])
 
   const fetchCategories = async () => {
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      const data = await categoriesAPI.getAll();
-      setCategories(data || []);
-      setError(null);
+      const response = await categoriesAPI.getAll()
+      // Ensure we have an array, even if the response is null or undefined
+      const categoriesData = Array.isArray(response?.data) ? response.data : []
+      setCategories(categoriesData)
+      setError(null)
     } catch (err) {
-      console.error("Error fetching categories:", err);
-      setError(err.message || "Failed to load categories. Please try again later.");
+      console.error("Error fetching categories:", err)
+      setError(err.message || "Failed to load categories. Please try again later.")
+      setCategories([]) // Set empty array on error
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleAddCategory = async () => {
     try {
@@ -75,14 +79,6 @@ export default function CategoriesTab() {
         alert("Failed to delete category. Please try again.")
       }
     }
-  }
-
-  // Format currency
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount)
   }
 
   if (isLoading && categories.length === 0) {

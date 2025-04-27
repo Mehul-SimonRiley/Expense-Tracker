@@ -3,9 +3,9 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.transaction import Transaction
 from sqlalchemy import func
 
-bp = Blueprint("calendar", __name__)
+calendar_bp = Blueprint("calendar", __name__)
 
-@bp.route("/transactions", methods=["GET"])
+@calendar_bp.route("/transactions", methods=["GET"])
 @jwt_required()
 def get_calendar_transactions():
     try:

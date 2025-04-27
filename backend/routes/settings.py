@@ -6,11 +6,11 @@ from extensions import db
 import logging
 
 logger = logging.getLogger(__name__)
-bp = Blueprint("settings", __name__)
+settings_bp = Blueprint("settings", __name__)
 
 # Update Profile
-@bp.route("/profile", methods=["PUT"])
-@bp.route("/profile/", methods=["PUT"])
+@settings_bp.route("/profile", methods=["PUT"])
+@settings_bp.route("/profile/", methods=["PUT"])
 @jwt_required()
 def update_profile():
     try:
@@ -28,8 +28,8 @@ def update_profile():
         return jsonify({"error": "An error occurred while updating the profile.", "details": str(e)}), 500
 
 # Update Preferences
-@bp.route("/preferences", methods=["PUT"])
-@bp.route("/preferences/", methods=["PUT"])
+@settings_bp.route("/preferences", methods=["PUT"])
+@settings_bp.route("/preferences/", methods=["PUT"])
 @jwt_required()
 def update_preferences():
     try:
@@ -50,8 +50,8 @@ def update_preferences():
         return jsonify({"error": "An error occurred while updating preferences.", "details": str(e)}), 500
 
 # Update Notifications
-@bp.route("/notifications", methods=["PUT"])
-@bp.route("/notifications/", methods=["PUT"])
+@settings_bp.route("/notifications", methods=["PUT"])
+@settings_bp.route("/notifications/", methods=["PUT"])
 @jwt_required()
 def update_notifications():
     try:
@@ -70,8 +70,8 @@ def update_notifications():
         return jsonify({"error": "An error occurred while updating notifications.", "details": str(e)}), 500
 
 # Data Backup
-@bp.route("/backup", methods=["POST"])
-@bp.route("/backup/", methods=["POST"])
+@settings_bp.route("/backup", methods=["POST"])
+@settings_bp.route("/backup/", methods=["POST"])
 @jwt_required()
 def create_backup():
     try:
@@ -82,8 +82,8 @@ def create_backup():
         return jsonify({"error": "An error occurred while creating the backup.", "details": str(e)}), 500
 
 # Data Restore
-@bp.route("/restore", methods=["POST"])
-@bp.route("/restore/", methods=["POST"])
+@settings_bp.route("/restore", methods=["POST"])
+@settings_bp.route("/restore/", methods=["POST"])
 @jwt_required()
 def restore_backup():
     try:
@@ -94,8 +94,8 @@ def restore_backup():
         return jsonify({"error": "An error occurred while restoring the backup.", "details": str(e)}), 500
 
 # Delete Account
-@bp.route("/account", methods=["DELETE"])
-@bp.route("/account/", methods=["DELETE"])
+@settings_bp.route("/account", methods=["DELETE"])
+@settings_bp.route("/account/", methods=["DELETE"])
 @jwt_required()
 def delete_account():
     try:
@@ -111,7 +111,7 @@ def delete_account():
     except Exception as e:
         return jsonify({"error": "An error occurred while deleting the account.", "details": str(e)}), 500
 
-@bp.route('/', methods=['GET'])
+@settings_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_settings():
     try:
@@ -130,7 +130,7 @@ def get_settings():
         logger.error(f'Error fetching settings: {str(e)}')
         return jsonify({'error': 'Failed to fetch settings'}), 500
 
-@bp.route('/', methods=['PUT'])
+@settings_bp.route('/', methods=['PUT'])
 @jwt_required()
 def update_settings():
     try:

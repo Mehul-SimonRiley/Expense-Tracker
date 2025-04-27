@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from 'react'
 import { FiEdit2, FiPlus, FiX } from "react-icons/fi"
 import { budgetsAPI, categoriesAPI } from "../services/api"
+import { formatCurrency } from '../utils/format'
 
 export default function BudgetsTab() {
   const [timeframe, setTimeframe] = useState("month")
@@ -19,27 +20,23 @@ export default function BudgetsTab() {
   })
 
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true)
-      try {
-        // Fetch categories for dropdown
-        const categoriesData = await categoriesAPI.getAll()
-        setCategories(categoriesData || [])
-
-        // Fetch budgets
-        const budgetsData = await budgetsAPI.getAll()
-        setBudgets(budgetsData || [])
-        setError(null)
-      } catch (err) {
-        console.error("Error fetching data:", err)
-        setError(err.message || "Failed to load data. Please try again later.")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchData()
+    fetchBudgets()
   }, [])
+
+  const fetchBudgets = async () => {
+    try {
+      setIsLoading(true)
+      const data = await budgetsAPI.getAll()
+      setBudgets(Array.isArray(data) ? data : [])
+      setError(null)
+    } catch (err) {
+      console.error('Error fetching budgets:', err)
+      setError('Failed to load budgets')
+      setBudgets([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleAddBudget = async () => {
     try {
@@ -51,8 +48,7 @@ export default function BudgetsTab() {
       })
       setShowAddForm(false)
       // Refresh budgets list
-      const budgetsData = await budgetsAPI.getAll()
-      setBudgets(budgetsData || [])
+      fetchBudgets()
     } catch (err) {
       console.error("Error adding budget:", err)
       alert("Failed to add budget. Please try again.")
@@ -66,8 +62,7 @@ export default function BudgetsTab() {
       await budgetsAPI.update(editingBudget.id, editingBudget)
       setEditingBudget(null)
       // Refresh budgets list
-      const budgetsData = await budgetsAPI.getAll()
-      setBudgets(budgetsData || [])
+      fetchBudgets()
     } catch (err) {
       console.error("Error updating budget:", err)
       alert("Failed to update budget. Please try again.")
@@ -79,23 +74,12 @@ export default function BudgetsTab() {
       try {
         await budgetsAPI.delete(id)
         // Refresh budgets list
-        const budgetsData = await budgetsAPI.getAll()
-        setBudgets(budgetsData || [])
+        fetchBudgets()
       } catch (err) {
         console.error("Error deleting budget:", err)
         alert("Failed to delete budget. Please try again.")
       }
     }
-  }
-
-  // Format currency
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount || 0)
   }
 
   if (isLoading) {
@@ -117,6 +101,10 @@ export default function BudgetsTab() {
       </div>
     )
   }
+
+  const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0)
+  const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0)
+  const remaining = totalBudget - totalSpent
 
   return (
     <div>
@@ -259,32 +247,20 @@ export default function BudgetsTab() {
       )}
 
       {/* Budget Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="card">
-          <div className="card-content">
-            <div className="text-sm text-muted mb-2">Total Budget</div>
-            <div className="text-xl font-bold">
-              {formatCurrency(budgets.reduce((sum, budget) => sum + Number(budget.amount), 0))}
-            </div>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold mb-2">Budget Overview</h2>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-gray-500">Total Budget</h3>
+            <p className="text-2xl font-bold">{formatCurrency(totalBudget)}</p>
           </div>
-        </div>
-        <div className="card">
-          <div className="card-content">
-            <div className="text-sm text-muted mb-2">Total Spent</div>
-            <div className="text-xl font-bold text-expense">
-              {formatCurrency(budgets.reduce((sum, budget) => sum + Number(budget.current_spending || 0), 0))}
-            </div>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-gray-500">Total Spent</h3>
+            <p className="text-2xl font-bold">{formatCurrency(totalSpent)}</p>
           </div>
-        </div>
-        <div className="card">
-          <div className="card-content">
-            <div className="text-sm text-muted mb-2">Remaining</div>
-            <div className="text-xl font-bold text-income">
-              {formatCurrency(
-                budgets.reduce((sum, budget) => sum + Number(budget.amount), 0) -
-                budgets.reduce((sum, budget) => sum + Number(budget.current_spending || 0), 0)
-              )}
-            </div>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-gray-500">Remaining</h3>
+            <p className="text-2xl font-bold">{formatCurrency(remaining)}</p>
           </div>
         </div>
       </div>
@@ -295,9 +271,7 @@ export default function BudgetsTab() {
           <h2 className="card-title">Overall Budget Progress</h2>
           <div className="text-sm font-medium">
             {Math.round(
-              (budgets.reduce((sum, budget) => sum + Number(budget.current_spending || 0), 0) /
-                budgets.reduce((sum, budget) => sum + Number(budget.amount), 0)) *
-                100 || 0
+              (totalSpent / totalBudget) * 100 || 0
             )}
             % Used
           </div>
@@ -315,9 +289,7 @@ export default function BudgetsTab() {
             <div
               style={{
                 width: `${Math.min(
-                  (budgets.reduce((sum, budget) => sum + Number(budget.current_spending || 0), 0) /
-                    budgets.reduce((sum, budget) => sum + Number(budget.amount), 0)) *
-                    100 || 0,
+                  (totalSpent / totalBudget) * 100 || 0,
                   100
                 )}%`,
                 height: "100%",
@@ -328,7 +300,7 @@ export default function BudgetsTab() {
           </div>
           <div className="flex justify-between text-sm text-muted">
             <div>₹0</div>
-            <div>{formatCurrency(budgets.reduce((sum, budget) => sum + Number(budget.amount), 0))}</div>
+            <div>{formatCurrency(totalBudget)}</div>
           </div>
         </div>
       </div>
@@ -355,9 +327,9 @@ export default function BudgetsTab() {
                 <tr key={budget.id}>
                   <td>{budget.category_name}</td>
                   <td>{formatCurrency(budget.amount)}</td>
-                  <td>{formatCurrency(budget.current_spending || 0)}</td>
-                  <td className={budget.amount - (budget.current_spending || 0) < 0 ? "text-expense" : "text-income"}>
-                    {formatCurrency(budget.amount - (budget.current_spending || 0))}
+                  <td>{formatCurrency(budget.spent)}</td>
+                  <td className={budget.amount - budget.spent < 0 ? "text-expense" : "text-income"}>
+                    {formatCurrency(budget.amount - budget.spent)}
                   </td>
                   <td>
                     <div
@@ -372,12 +344,12 @@ export default function BudgetsTab() {
                       <div
                         style={{
                           width: `${Math.min(
-                            ((budget.current_spending || 0) / budget.amount) * 100 || 0,
+                            ((budget.spent) / budget.amount) * 100 || 0,
                             100
                           )}%`,
                           height: "100%",
                           backgroundColor:
-                            (budget.current_spending || 0) > budget.amount
+                            budget.spent > budget.amount
                               ? "var(--expense-color)"
                               : "var(--primary-color)",
                           borderRadius: "9999px",

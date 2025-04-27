@@ -25,15 +25,13 @@ export default function CategoriesTab() {
   const fetchCategories = async () => {
     setIsLoading(true)
     try {
-      const response = await categoriesAPI.getAll()
-      // Ensure we have an array, even if the response is null or undefined
-      const categoriesData = Array.isArray(response?.data) ? response.data : []
-      setCategories(categoriesData)
+      const data = await categoriesAPI.getAll()
+      setCategories(Array.isArray(data) ? data : [])
       setError(null)
     } catch (err) {
       console.error("Error fetching categories:", err)
-      setError(err.message || "Failed to load categories. Please try again later.")
-      setCategories([]) // Set empty array on error
+      setError("Failed to load categories")
+      setCategories([])
     } finally {
       setIsLoading(false)
     }
@@ -49,7 +47,7 @@ export default function CategoriesTab() {
         icon: "📊",
       })
       setShowAddForm(false)
-      fetchCategories() // Refresh the list
+      fetchCategories()
     } catch (err) {
       console.error("Error adding category:", err)
       alert("Failed to add category. Please try again.")
@@ -62,7 +60,7 @@ export default function CategoriesTab() {
     try {
       await categoriesAPI.update(editingCategory.id, editingCategory)
       setEditingCategory(null)
-      fetchCategories() // Refresh the list
+      fetchCategories()
     } catch (err) {
       console.error("Error updating category:", err)
       alert("Failed to update category. Please try again.")
@@ -73,7 +71,7 @@ export default function CategoriesTab() {
     if (window.confirm("Are you sure you want to delete this category?")) {
       try {
         await categoriesAPI.delete(id)
-        fetchCategories() // Refresh the list
+        fetchCategories()
       } catch (err) {
         console.error("Error deleting category:", err)
         alert("Failed to delete category. Please try again.")
@@ -81,7 +79,7 @@ export default function CategoriesTab() {
     }
   }
 
-  if (isLoading && categories.length === 0) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="text-center">
@@ -102,197 +100,217 @@ export default function CategoriesTab() {
   }
 
   return (
-    <div>
+    <div className="p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="page-title">Categories</h1>
-        <button className="btn btn-primary" onClick={() => setShowAddForm(!showAddForm)}>
-          <FiPlus />
+        <h2 className="text-2xl font-bold">Categories</h2>
+        <button
+          className="btn btn-primary"
+          onClick={() => setShowAddForm(true)}
+        >
+          <FiPlus className="mr-2" />
           Add Category
         </button>
       </div>
 
-      {/* Add Category Form */}
       {showAddForm && (
-        <div className="card mb-6">
-          <div className="card-header">
-            <h2 className="card-title">Add New Category</h2>
-          </div>
-          <div className="card-content">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="form-group">
-                <label className="form-label">Category Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g., Groceries"
-                  value={newCategory.name}
-                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Monthly Budget</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  placeholder="e.g., 500"
-                  value={newCategory.budget}
-                  onChange={(e) => setNewCategory({ ...newCategory, budget: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Color</label>
-                <input
-                  type="color"
-                  className="form-input"
-                  value={newCategory.color}
-                  onChange={(e) => setNewCategory({ ...newCategory, color: e.target.value })}
-                  style={{ height: "40px" }}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Icon</label>
-                <select
-                  className="form-select"
-                  value={newCategory.icon}
-                  onChange={(e) => setNewCategory({ ...newCategory, icon: e.target.value })}
-                >
-                  <option value="📊">📊 Chart</option>
-                  <option value="🍔">🍔 Food</option>
-                  <option value="🏠">🏠 Home</option>
-                  <option value="🚗">🚗 Car</option>
-                  <option value="💡">💡 Utilities</option>
-                  <option value="🎬">🎬 Entertainment</option>
-                  <option value="🛍️">🛍️ Shopping</option>
-                  <option value="🏥">🏥 Healthcare</option>
-                  <option value="👤">👤 Personal</option>
-                  <option value="📚">📚 Education</option>
-                  <option value="💰">💰 Savings</option>
-                </select>
-              </div>
+        <div className="bg-white p-4 rounded-lg shadow mb-6">
+          <h3 className="text-lg font-semibold mb-4">Add New Category</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Name
+              </label>
+              <input
+                type="text"
+                className="form-input w-full"
+                value={newCategory.name}
+                onChange={(e) =>
+                  setNewCategory({ ...newCategory, name: e.target.value })
+                }
+                placeholder="Category name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Budget
+              </label>
+              <input
+                type="number"
+                className="form-input w-full"
+                value={newCategory.budget}
+                onChange={(e) =>
+                  setNewCategory({ ...newCategory, budget: e.target.value })
+                }
+                placeholder="Budget amount"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Color
+              </label>
+              <input
+                type="color"
+                className="w-full h-10"
+                value={newCategory.color}
+                onChange={(e) =>
+                  setNewCategory({ ...newCategory, color: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Icon
+              </label>
+              <input
+                type="text"
+                className="form-input w-full"
+                value={newCategory.icon}
+                onChange={(e) =>
+                  setNewCategory({ ...newCategory, icon: e.target.value })
+                }
+                placeholder="Emoji icon"
+              />
             </div>
           </div>
-          <div className="card-footer">
-            <div className="flex justify-end gap-2">
-              <button className="btn btn-outline" onClick={() => setShowAddForm(false)}>
-                Cancel
-              </button>
-              <button className="btn btn-primary" onClick={handleAddCategory}>
-                Save Category
-              </button>
-            </div>
+          <div className="flex justify-end mt-4 space-x-2">
+            <button
+              className="btn btn-outline"
+              onClick={() => setShowAddForm(false)}
+            >
+              Cancel
+            </button>
+            <button className="btn btn-primary" onClick={handleAddCategory}>
+              Save Category
+            </button>
           </div>
         </div>
       )}
 
-      {/* Edit Category Form */}
       {editingCategory && (
-        <div className="card mb-6">
-          <div className="card-header">
-            <h2 className="card-title">Edit Category</h2>
-          </div>
-          <div className="card-content">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="form-group">
-                <label className="form-label">Category Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={editingCategory.name}
-                  onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Monthly Budget</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  value={editingCategory.budget}
-                  onChange={(e) => setEditingCategory({ ...editingCategory, budget: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Color</label>
-                <input
-                  type="color"
-                  className="form-input"
-                  value={editingCategory.color}
-                  onChange={(e) => setEditingCategory({ ...editingCategory, color: e.target.value })}
-                  style={{ height: "40px" }}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Icon</label>
-                <select
-                  className="form-select"
-                  value={editingCategory.icon}
-                  onChange={(e) => setEditingCategory({ ...editingCategory, icon: e.target.value })}
-                >
-                  <option value="📊">📊 Chart</option>
-                  <option value="🍔">🍔 Food</option>
-                  <option value="🏠">🏠 Home</option>
-                  <option value="🚗">🚗 Car</option>
-                  <option value="💡">💡 Utilities</option>
-                  <option value="🎬">🎬 Entertainment</option>
-                  <option value="🛍️">🛍️ Shopping</option>
-                  <option value="🏥">🏥 Healthcare</option>
-                  <option value="👤">👤 Personal</option>
-                  <option value="📚">📚 Education</option>
-                  <option value="💰">💰 Savings</option>
-                </select>
-              </div>
+        <div className="bg-white p-4 rounded-lg shadow mb-6">
+          <h3 className="text-lg font-semibold mb-4">Edit Category</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Name
+              </label>
+              <input
+                type="text"
+                className="form-input w-full"
+                value={editingCategory.name}
+                onChange={(e) =>
+                  setEditingCategory({ ...editingCategory, name: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Budget
+              </label>
+              <input
+                type="number"
+                className="form-input w-full"
+                value={editingCategory.budget}
+                onChange={(e) =>
+                  setEditingCategory({
+                    ...editingCategory,
+                    budget: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Color
+              </label>
+              <input
+                type="color"
+                className="w-full h-10"
+                value={editingCategory.color}
+                onChange={(e) =>
+                  setEditingCategory({
+                    ...editingCategory,
+                    color: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Icon
+              </label>
+              <input
+                type="text"
+                className="form-input w-full"
+                value={editingCategory.icon}
+                onChange={(e) =>
+                  setEditingCategory({
+                    ...editingCategory,
+                    icon: e.target.value,
+                  })
+                }
+              />
             </div>
           </div>
-          <div className="card-footer">
-            <div className="flex justify-end gap-2">
-              <button className="btn btn-outline" onClick={() => setEditingCategory(null)}>
-                Cancel
-              </button>
-              <button className="btn btn-primary" onClick={handleEditCategory}>
-                Save Changes
-              </button>
-            </div>
+          <div className="flex justify-end mt-4 space-x-2">
+            <button
+              className="btn btn-outline"
+              onClick={() => setEditingCategory(null)}
+            >
+              Cancel
+            </button>
+            <button className="btn btn-primary" onClick={handleEditCategory}>
+              Save Changes
+            </button>
           </div>
         </div>
       )}
 
-      {/* Categories Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {categories.map((category) => (
-          <div className="card" key={category.id}>
-            <div className="card-content">
-              <div className="flex items-center gap-4 mb-4">
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-4 border-b">
+          <h2 className="text-xl font-bold">Category List</h2>
+        </div>
+        <div className="p-4">
+          {categories.length === 0 ? (
+            <p className="text-gray-500">No categories found. Add your first category to get started.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {categories.map((category) => (
                 <div
-                  style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "8px",
-                    backgroundColor: category.color,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "20px",
-                  }}
+                  key={category.id}
+                  className="border rounded-lg p-4"
+                  style={{ borderLeftColor: category.color, borderLeftWidth: "4px" }}
                 >
-                  {category.icon}
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="flex items-center">
+                        <span className="text-2xl mr-2">{category.icon}</span>
+                        <h3 className="font-bold">{category.name}</h3>
+                      </div>
+                      <p className="text-gray-500 mt-1">
+                        Budget: {formatCurrency(category.budget)}
+                      </p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => setEditingCategory(category)}
+                      >
+                        <FiEdit2 />
+                      </button>
+                      <button
+                        className="btn btn-outline btn-sm text-red-500"
+                        onClick={() => handleDeleteCategory(category.id)}
+                      >
+                        <FiTrash2 />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-medium">{category.name}</h3>
-                  <p className="text-sm text-muted">Monthly Budget: {formatCurrency(category.budget)}</p>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <button className="btn btn-outline btn-sm" onClick={() => setEditingCategory(category)}>
-                  <FiEdit2 size={14} />
-                  Edit
-                </button>
-                <button className="btn btn-outline btn-sm" onClick={() => handleDeleteCategory(category.id)}>
-                  <FiTrash2 size={14} />
-                  Delete
-                </button>
-              </div>
+              ))}
             </div>
-          </div>
-        ))}
+          )}
+        </div>
       </div>
     </div>
   )

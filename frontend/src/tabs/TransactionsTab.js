@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { FiChevronDown, FiEdit2, FiFilter, FiPlus, FiTrash2, FiX } from "react-icons/fi"
 import { transactionsAPI, categoriesAPI } from "../services/api"
+import { formatCurrency } from "../utils/format"
 
 export default function TransactionsTab({ onError }) {
   const [filterOpen, setFilterOpen] = useState(false)
@@ -35,63 +36,62 @@ export default function TransactionsTab({ onError }) {
     type: "expense",
     notes: "",
   })
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true)
-      try {
-        // Fetch categories first for the dropdown
-        const categoriesData = await categoriesAPI.getAll()
-        setCategories(Array.isArray(categoriesData) ? categoriesData : [])
-
-        // Then fetch transactions
-        await fetchTransactions()
-
-        if (onError) onError(null)
-      } catch (err) {
-        console.error("Error fetching initial data:", err)
-        if (onError) onError("Failed to load transactions data. Please ensure the backend server is running.")
-      }
-    }
-
     fetchData()
-  }, [onError])
+  }, [])
+
+  const fetchData = async () => {
+    setIsLoading(true)
+    try {
+      // Fetch categories first for the dropdown
+      const categoriesData = await categoriesAPI.getAll()
+      setCategories(Array.isArray(categoriesData) ? categoriesData : [])
+
+      // Then fetch transactions
+      await fetchTransactions()
+
+      if (onError) onError(null)
+    } catch (err) {
+      console.error("Error fetching initial data:", err)
+      setError("Failed to load transactions data")
+      if (onError) onError("Failed to load transactions data")
+    }
+  }
 
   useEffect(() => {
-    // Refetch when filters or sorting changes
     if (!isLoading) {
       fetchTransactions()
     }
   }, [filters, sortBy, sortDirection, currentPage])
 
   const fetchTransactions = async () => {
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      const data = await transactionsAPI.getAll();
-      // The backend returns an array of transactions directly
-      setTransactions(Array.isArray(data) ? data : []);
+      const data = await transactionsAPI.getAll()
+      setTransactions(Array.isArray(data) ? data : [])
       
       // Calculate summary
       const summary = data.reduce((acc, transaction) => {
         if (transaction.type === 'income') {
-          acc.totalIncome += Number(transaction.amount);
+          acc.totalIncome += Number(transaction.amount)
         } else {
-          acc.totalExpenses += Number(transaction.amount);
+          acc.totalExpenses += Number(transaction.amount)
         }
-        return acc;
-      }, { totalIncome: 0, totalExpenses: 0, netFlow: 0 });
+        return acc
+      }, { totalIncome: 0, totalExpenses: 0, netFlow: 0 })
       
-      summary.netFlow = summary.totalIncome - summary.totalExpenses;
-      setSummary(summary);
-      setError(null);
+      summary.netFlow = summary.totalIncome - summary.totalExpenses
+      setSummary(summary)
+      setError(null)
     } catch (err) {
-      console.error("Error fetching transactions:", err);
-      setError(err.message || "Failed to load transactions. Please try again later.");
+      console.error("Error fetching transactions:", err)
+      setError("Failed to load transactions")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleAddTransaction = async () => {
     try {
@@ -105,7 +105,7 @@ export default function TransactionsTab({ onError }) {
         notes: "",
       })
       setShowAddForm(false)
-      fetchTransactions() // Refresh the list
+      fetchTransactions()
     } catch (err) {
       console.error("Error adding transaction:", err)
       alert("Failed to add transaction. Please try again.")
@@ -118,7 +118,7 @@ export default function TransactionsTab({ onError }) {
     try {
       await transactionsAPI.update(editingTransaction.id, editingTransaction)
       setEditingTransaction(null)
-      fetchTransactions() // Refresh the list
+      fetchTransactions()
     } catch (err) {
       console.error("Error updating transaction:", err)
       alert("Failed to update transaction. Please try again.")
@@ -129,7 +129,7 @@ export default function TransactionsTab({ onError }) {
     if (window.confirm("Are you sure you want to delete this transaction?")) {
       try {
         await transactionsAPI.delete(id)
-        fetchTransactions() // Refresh the list
+        fetchTransactions()
       } catch (err) {
         console.error("Error deleting transaction:", err)
         alert("Failed to delete transaction. Please try again.")
@@ -137,47 +137,7 @@ export default function TransactionsTab({ onError }) {
     }
   }
 
-  const handleFilterChange = (field, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
-    setCurrentPage(1) // Reset to first page when filters change
-  }
-
-  const handleResetFilters = () => {
-    setFilters({
-      dateRange: "month",
-      category: "all",
-      type: "all",
-      minAmount: "",
-      maxAmount: "",
-    })
-    setCurrentPage(1)
-  }
-
-  const handleSortChange = (field) => {
-    if (sortBy === field) {
-      // Toggle direction if same field
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
-    } else {
-      // New field, default to descending
-      setSortBy(field)
-      setSortDirection("desc")
-    }
-  }
-
-  // Format currency
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount || 0)
-  }
-
-  if (isLoading && transactions.length === 0) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="text-center">
@@ -188,366 +148,295 @@ export default function TransactionsTab({ onError }) {
     )
   }
 
+  if (error) {
+    return (
+      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+        <strong className="font-bold">Error!</strong>
+        <span className="block sm:inline"> {error}</span>
+      </div>
+    )
+  }
+
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="page-title">Transactions</h1>
-        <div className="flex gap-2">
-          <button className="btn btn-outline" onClick={() => setFilterOpen(!filterOpen)}>
-            <FiFilter />
-            Filter
-          </button>
-          <button className="btn btn-primary" onClick={() => setShowAddForm(true)}>
-            <FiPlus />
-            Add Transaction
-          </button>
+    <div className="p-4">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="text-gray-500">Total Income</h3>
+          <p className="text-2xl font-bold text-green-600">{formatCurrency(summary.totalIncome)}</p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="text-gray-500">Total Expenses</h3>
+          <p className="text-2xl font-bold text-red-600">{formatCurrency(summary.totalExpenses)}</p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="text-gray-500">Net Flow</h3>
+          <p className={`text-2xl font-bold ${summary.netFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {formatCurrency(summary.netFlow)}
+          </p>
         </div>
       </div>
 
-      {/* Add/Edit Transaction Form */}
-      {(showAddForm || editingTransaction) && (
-        <div className="card mb-6">
-          <div className="card-header">
-            <h2 className="card-title">{editingTransaction ? "Edit Transaction" : "Add New Transaction"}</h2>
-            <button
-              className="btn btn-outline btn-sm"
-              onClick={() => {
-                setShowAddForm(false)
-                setEditingTransaction(null)
-              }}
-            >
-              <FiX />
-            </button>
-          </div>
-          <div className="card-content">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="form-group">
-                <label className="form-label">Description</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g., Grocery Shopping"
-                  value={editingTransaction ? editingTransaction.description : newTransaction.description}
-                  onChange={(e) => {
-                    if (editingTransaction) {
-                      setEditingTransaction({ ...editingTransaction, description: e.target.value })
-                    } else {
-                      setNewTransaction({ ...newTransaction, description: e.target.value })
-                    }
-                  }}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Amount</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="form-input"
-                  placeholder="0.00"
-                  value={editingTransaction ? editingTransaction.amount : newTransaction.amount}
-                  onChange={(e) => {
-                    if (editingTransaction) {
-                      setEditingTransaction({ ...editingTransaction, amount: e.target.value })
-                    } else {
-                      setNewTransaction({ ...newTransaction, amount: e.target.value })
-                    }
-                  }}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Date</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  value={
-                    editingTransaction
-                      ? editingTransaction.date
-                        ? new Date(editingTransaction.date).toISOString().split("T")[0]
-                        : ""
-                      : newTransaction.date
-                  }
-                  onChange={(e) => {
-                    if (editingTransaction) {
-                      setEditingTransaction({ ...editingTransaction, date: e.target.value })
-                    } else {
-                      setNewTransaction({ ...newTransaction, date: e.target.value })
-                    }
-                  }}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Category</label>
-                <select
-                  className="form-select"
-                  value={editingTransaction ? editingTransaction.category : newTransaction.category}
-                  onChange={(e) => {
-                    if (editingTransaction) {
-                      setEditingTransaction({ ...editingTransaction, category: e.target.value })
-                    } else {
-                      setNewTransaction({ ...newTransaction, category: e.target.value })
-                    }
-                  }}
-                >
-                  <option value="">Select a category</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.name || category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Type</label>
-                <select
-                  className="form-select"
-                  value={editingTransaction ? editingTransaction.type : newTransaction.type}
-                  onChange={(e) => {
-                    if (editingTransaction) {
-                      setEditingTransaction({ ...editingTransaction, type: e.target.value })
-                    } else {
-                      setNewTransaction({ ...newTransaction, type: e.target.value })
-                    }
-                  }}
-                >
-                  <option value="expense">Expense</option>
-                  <option value="income">Income</option>
-                </select>
-              </div>
-              <div className="form-group sm:col-span-2">
-                <label className="form-label">Notes</label>
-                <textarea
-                  className="form-input"
-                  rows="3"
-                  placeholder="Add any additional notes here..."
-                  value={editingTransaction ? editingTransaction.notes || "" : newTransaction.notes}
-                  onChange={(e) => {
-                    if (editingTransaction) {
-                      setEditingTransaction({ ...editingTransaction, notes: e.target.value })
-                    } else {
-                      setNewTransaction({ ...newTransaction, notes: e.target.value })
-                    }
-                  }}
-                ></textarea>
-              </div>
-            </div>
-          </div>
-          <div className="card-footer">
-            <div className="flex justify-end gap-2">
-              <button
-                className="btn btn-outline"
-                onClick={() => {
-                  setShowAddForm(false)
-                  setEditingTransaction(null)
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={editingTransaction ? handleEditTransaction : handleAddTransaction}
-              >
-                {editingTransaction ? "Save Changes" : "Add Transaction"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Filter Panel */}
-      {filterOpen && (
-        <div className="card mb-6">
-          <div className="card-content">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="form-group">
-                <label className="form-label">Date Range</label>
-                <select
-                  className="form-select"
-                  value={filters.dateRange}
-                  onChange={(e) => handleFilterChange("dateRange", e.target.value)}
-                >
-                  <option value="month">This Month</option>
-                  <option value="last-month">Last Month</option>
-                  <option value="quarter">Last 3 Months</option>
-                  <option value="custom">Custom Range</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Category</label>
-                <select
-                  className="form-select"
-                  value={filters.category}
-                  onChange={(e) => handleFilterChange("category", e.target.value)}
-                >
-                  <option value="all">All Categories</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.name || category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Type</label>
-                <select
-                  className="form-select"
-                  value={filters.type}
-                  onChange={(e) => handleFilterChange("type", e.target.value)}
-                >
-                  <option value="all">All Types</option>
-                  <option value="expense">Expense</option>
-                  <option value="income">Income</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Amount Range</label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    placeholder="Min"
-                    className="form-input"
-                    value={filters.minAmount}
-                    onChange={(e) => handleFilterChange("minAmount", e.target.value)}
-                  />
-                  <input
-                    type="number"
-                    placeholder="Max"
-                    className="form-input"
-                    value={filters.maxAmount}
-                    onChange={(e) => handleFilterChange("maxAmount", e.target.value)}
-                  />
+      {/* Filters and Add Button */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center space-x-2">
+          <button
+            className="btn btn-outline"
+            onClick={() => setFilterOpen(!filterOpen)}
+          >
+            <FiFilter className="mr-2" />
+            Filters
+          </button>
+          {filterOpen && (
+            <div className="absolute bg-white p-4 rounded-lg shadow-lg z-10 mt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Date Range
+                  </label>
+                  <select
+                    className="form-select w-full"
+                    value={filters.dateRange}
+                    onChange={(e) => setFilters({ ...filters, dateRange: e.target.value })}
+                  >
+                    <option value="all">All Time</option>
+                    <option value="month">This Month</option>
+                    <option value="week">This Week</option>
+                    <option value="today">Today</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category
+                  </label>
+                  <select
+                    className="form-select w-full"
+                    value={filters.category}
+                    onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+                  >
+                    <option value="all">All Categories</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Type
+                  </label>
+                  <select
+                    className="form-select w-full"
+                    value={filters.type}
+                    onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+                  >
+                    <option value="all">All Types</option>
+                    <option value="income">Income</option>
+                    <option value="expense">Expense</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Amount Range
+                  </label>
+                  <div className="flex space-x-2">
+                    <input
+                      type="number"
+                      className="form-input w-1/2"
+                      placeholder="Min"
+                      value={filters.minAmount}
+                      onChange={(e) => setFilters({ ...filters, minAmount: e.target.value })}
+                    />
+                    <input
+                      type="number"
+                      className="form-input w-1/2"
+                      placeholder="Max"
+                      value={filters.maxAmount}
+                      onChange={(e) => setFilters({ ...filters, maxAmount: e.target.value })}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <button className="btn btn-outline" onClick={handleResetFilters}>
-                Reset
-              </button>
-              <button className="btn btn-primary" onClick={() => setFilterOpen(false)}>
-                Apply Filters
-              </button>
+          )}
+        </div>
+        <button
+          className="btn btn-primary"
+          onClick={() => setShowAddForm(true)}
+        >
+          <FiPlus className="mr-2" />
+          Add Transaction
+        </button>
+      </div>
+
+      {/* Add Transaction Form */}
+      {showAddForm && (
+        <div className="bg-white p-4 rounded-lg shadow mb-6">
+          <h3 className="text-lg font-semibold mb-4">Add New Transaction</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description
+              </label>
+              <input
+                type="text"
+                className="form-input w-full"
+                value={newTransaction.description}
+                onChange={(e) =>
+                  setNewTransaction({ ...newTransaction, description: e.target.value })
+                }
+                placeholder="Transaction description"
+              />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Amount
+              </label>
+              <input
+                type="number"
+                className="form-input w-full"
+                value={newTransaction.amount}
+                onChange={(e) =>
+                  setNewTransaction({ ...newTransaction, amount: e.target.value })
+                }
+                placeholder="Amount"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Date
+              </label>
+              <input
+                type="date"
+                className="form-input w-full"
+                value={newTransaction.date}
+                onChange={(e) =>
+                  setNewTransaction({ ...newTransaction, date: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Category
+              </label>
+              <select
+                className="form-select w-full"
+                value={newTransaction.category}
+                onChange={(e) =>
+                  setNewTransaction({ ...newTransaction, category: e.target.value })
+                }
+              >
+                <option value="">Select Category</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Type
+              </label>
+              <select
+                className="form-select w-full"
+                value={newTransaction.type}
+                onChange={(e) =>
+                  setNewTransaction({ ...newTransaction, type: e.target.value })
+                }
+              >
+                <option value="expense">Expense</option>
+                <option value="income">Income</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Notes
+              </label>
+              <textarea
+                className="form-input w-full"
+                value={newTransaction.notes}
+                onChange={(e) =>
+                  setNewTransaction({ ...newTransaction, notes: e.target.value })
+                }
+                placeholder="Additional notes"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end mt-4 space-x-2">
+            <button
+              className="btn btn-outline"
+              onClick={() => setShowAddForm(false)}
+            >
+              Cancel
+            </button>
+            <button className="btn btn-primary" onClick={handleAddTransaction}>
+              Save Transaction
+            </button>
           </div>
         </div>
       )}
 
-      {/* Transactions Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="card">
-          <div className="card-content">
-            <div className="text-sm text-muted mb-2">Total Income</div>
-            <div className="text-xl font-bold text-income">{formatCurrency(summary.totalIncome)}</div>
-          </div>
+      {/* Transactions List */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-4 border-b">
+          <h2 className="text-xl font-bold">Transactions</h2>
         </div>
-        <div className="card">
-          <div className="card-content">
-            <div className="text-sm text-muted mb-2">Total Expenses</div>
-            <div className="text-xl font-bold text-expense">{formatCurrency(summary.totalExpenses)}</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-content">
-            <div className="text-sm text-muted mb-2">Net Flow</div>
-            <div className="text-xl font-bold">{formatCurrency(summary.netFlow)}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Transactions Table */}
-      <div className="card">
-        <div className="card-header">
-          <h2 className="card-title">All Transactions</h2>
-          <div className="flex gap-2">
-            <select
-              className="form-select"
-              style={{ width: "150px" }}
-              value={sortBy}
-              onChange={(e) => handleSortChange(e.target.value)}
-            >
-              <option value="date">Sort by Date</option>
-              <option value="amount">Sort by Amount</option>
-              <option value="category">Sort by Category</option>
-            </select>
-            <button
-              className="btn btn-outline btn-sm"
-              onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
-            >
-              <FiChevronDown style={{ transform: sortDirection === "asc" ? "rotate(180deg)" : "rotate(0deg)" }} />
-            </button>
-          </div>
-        </div>
-        <div className="card-content" style={{ padding: 0 }}>
-          {isLoading && transactions.length > 0 ? (
-            <div className="p-4 text-center">Loading...</div>
-          ) : transactions.length === 0 ? (
-            <div className="p-4 text-center">
-              No transactions found. Try adjusting your filters or add a new transaction.
-            </div>
+        <div className="p-4">
+          {transactions.length === 0 ? (
+            <p className="text-gray-500">No transactions found. Add your first transaction to get started.</p>
           ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Description</th>
-                  <th>Category</th>
-                  <th>Amount</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((transaction) => (
-                  <tr key={transaction.id}>
-                    <td>{new Date(transaction.date).toLocaleDateString()}</td>
-                    <td>{transaction.description}</td>
-                    <td>
-                      <span className={`badge ${transaction.type === "expense" ? "badge-expense" : "badge-income"}`}>
-                        {transaction.category}
-                      </span>
-                    </td>
-                    <td className={transaction.type === "expense" ? "text-expense" : "text-income"}>
-                      {transaction.type === "expense" ? "-" : "+"}
-                      {formatCurrency(Math.abs(transaction.amount))}
-                    </td>
-                    <td>
-                      <div className="flex gap-2">
-                        <button className="btn btn-outline btn-sm" onClick={() => setEditingTransaction(transaction)}>
-                          <FiEdit2 size={14} />
-                        </button>
+            <div className="space-y-4">
+              {transactions.map((transaction) => (
+                <div
+                  key={transaction.id}
+                  className="border rounded-lg p-4"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="flex items-center">
+                        <span className="text-2xl mr-2">
+                          {categories.find(c => c.id === transaction.category)?.icon || "💰"}
+                        </span>
+                        <div>
+                          <h3 className="font-bold">{transaction.description}</h3>
+                          <p className="text-gray-500 text-sm">
+                            {new Date(transaction.date).toLocaleDateString()} • 
+                            {categories.find(c => c.id === transaction.category)?.name || "Uncategorized"}
+                          </p>
+                        </div>
+                      </div>
+                      {transaction.notes && (
+                        <p className="text-gray-500 mt-2 text-sm">{transaction.notes}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <p className={`text-lg font-bold ${
+                        transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {formatCurrency(transaction.amount)}
+                      </p>
+                      <div className="flex space-x-2">
                         <button
                           className="btn btn-outline btn-sm"
+                          onClick={() => setEditingTransaction(transaction)}
+                        >
+                          <FiEdit2 />
+                        </button>
+                        <button
+                          className="btn btn-outline btn-sm text-red-500"
                           onClick={() => handleDeleteTransaction(transaction.id)}
                         >
-                          <FiTrash2 size={14} />
+                          <FiTrash2 />
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
-        </div>
-        <div className="card-footer">
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-muted">
-              Showing {transactions.length} of {transactions.length} transactions
-            </div>
-            <div className="flex gap-2">
-              <button
-                className="btn btn-outline btn-sm"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              >
-                Previous
-              </button>
-              <button
-                className="btn btn-primary btn-sm"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              >
-                Next
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>

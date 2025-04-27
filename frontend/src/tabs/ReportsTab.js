@@ -149,7 +149,7 @@ export default function ReportsTab() {
                         </tr>
                       </thead>
                       <tbody>
-                        {reportData.monthlyComparison.map((month) => (
+                        {(reportData.monthlyComparison || []).map((month) => (
                           <tr key={month.name}>
                             <td>{month.name}</td>
                             <td className="text-income">₹{month.income}</td>
@@ -190,7 +190,7 @@ export default function ReportsTab() {
                         </tr>
                       </thead>
                       <tbody>
-                        {reportData.topCategories.map((category) => (
+                        {(reportData.topCategories || []).map((category) => (
                           <tr key={category.name}>
                             <td>{category.name}</td>
                             <td className="text-expense">₹{category.amount}</td>
@@ -228,7 +228,7 @@ export default function ReportsTab() {
                         </tr>
                       </thead>
                       <tbody>
-                        {reportData.monthlySpending.map((month) => (
+                        {(reportData.monthlySpending || []).map((month) => (
                           <tr key={month.name}>
                             <td>{month.name}</td>
                             <td className="text-expense">₹{month.amount}</td>
@@ -251,12 +251,12 @@ export default function ReportsTab() {
                         </tr>
                       </thead>
                       <tbody>
-                        {reportData.categoryTrends.map((category) => (
-                          <tr key={category.name}>
-                            <td>{category.name}</td>
-                            <td>₹{category.thisMonth}</td>
-                            <td>₹{category.lastMonth}</td>
-                            <td>{category.change}</td>
+                        {(reportData.categoryTrends || []).map((trend) => (
+                          <tr key={trend.category}>
+                            <td>{trend.category}</td>
+                            <td>₹{trend.thisMonth}</td>
+                            <td>₹{trend.lastMonth}</td>
+                            <td>{trend.change}</td>
                           </tr>
                         ))}
                       </tbody>

@@ -29,6 +29,9 @@ api.interceptors.response.use(
       // Don't reload the page, just redirect to login
       window.location.href = '/';
       return Promise.reject(new Error("Unauthorized"));
+    } else if (error.response?.status === 422) {
+      console.error("Validation error:", error.response.data);
+      return Promise.reject(error);
     } else if (error.response?.status === 429) {
       // Handle rate limit error
       console.warn("Rate limit exceeded. Please wait a moment before trying again.");
@@ -134,6 +137,15 @@ export const categoriesAPI = {
       console.error('Error deleting category:', error)
       throw error
     }
+  },
+  getExpenseBreakdown: async () => {
+    try {
+      const response = await api.get('/categories/breakdown')
+      return response.data || []
+    } catch (error) {
+      console.error('Error fetching category expense breakdown:', error)
+      return []
+    }
   }
 }
 
@@ -205,10 +217,10 @@ export const dashboardAPI = {
 // Reports API
 export const reportsAPI = {
   getExpenseVsIncome: async (timeRange) => {
-    return api.get(`/reports/expense-income?timeRange=${timeRange}`)
+    return api.get(`/reports/income-vs-expense?timeRange=${timeRange}`)
   },
   getCategoryBreakdown: async (timeRange) => {
-    return api.get(`/reports/category-breakdown?timeRange=${timeRange}`)
+    return api.get(`/reports/spending-by-category?timeRange=${timeRange}`)
   },
   getSpendingTrends: async (timeRange) => {
     return api.get(`/reports/spending-trends?timeRange=${timeRange}`)

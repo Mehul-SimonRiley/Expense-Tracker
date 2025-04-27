@@ -33,3 +33,10 @@ class User(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+    
+    @classmethod
+    def get_by_id(cls, id):
+        return cls.query.get(id)
+    
+    def get_id(self):
+        return str(self.id)

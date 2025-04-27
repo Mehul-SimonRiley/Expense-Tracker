@@ -95,3 +95,21 @@ def delete_category(category_id):
     db.session.delete(category)
     db.session.commit()
     return jsonify({"msg": "Category deleted successfully"})
+
+@categories_bp.route('/breakdown', methods=['GET'])
+@jwt_required()
+def get_category_expense_breakdown():
+    current_user_id = get_jwt_identity()
+    # Join transactions and categories, sum by category
+    results = (
+        db.session.query(Category.name, db.func.sum(Transaction.amount))
+        .join(Transaction, Transaction.category_id == Category.id)
+        .filter(Category.user_id == current_user_id)
+        .group_by(Category.name)
+        .all()
+    )
+    breakdown = [
+        {"category": name, "amount": float(amount or 0)}
+        for name, amount in results
+    ]
+    return jsonify(breakdown)

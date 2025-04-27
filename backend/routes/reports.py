@@ -73,53 +73,64 @@ def get_summary():
 @jwt_required()
 def get_spending_by_category():
     current_user_id = get_jwt_identity()
-    
     today = datetime.utcnow().date()
-    year = request.args.get('year', default=today.year, type=int)
-    month = request.args.get('month', default=today.month, type=int)
-    
-    _, num_days = calendar.monthrange(year, month)
-    start_date = datetime(year, month, 1).date()
-    end_date = datetime(year, month, num_days).date()
-
+    # Default: current month
+    year = today.year
+    month = today.month
+    time_range = request.args.get('timeRange', 'month')
+    if time_range == 'year':
+        year = today.year
+        month = None
+    elif time_range == 'quarter':
+        # Use last 3 months
+        month = today.month - 2 if today.month > 2 else 1
+    # Calculate start and end dates
+    if month:
+        _, num_days = calendar.monthrange(year, month)
+        start_date = datetime(year, month, 1).date()
+        end_date = datetime(year, month, num_days).date()
+    else:
+        start_date = datetime(year, 1, 1).date()
+        end_date = today
     spending_data = db.session.query(
         Category.name,
-        Category.color,
         func.sum(Transaction.amount).label('total_spent')
     ).join(Transaction, Category.id == Transaction.category_id).filter(
         Transaction.user_id == current_user_id,
         Transaction.type == 'expense',
         Transaction.date >= start_date,
         Transaction.date <= end_date
-    ).group_by(Category.name, Category.color).order_by(func.sum(Transaction.amount).desc()).all()
-
-    report = [
-        {'category': name, 'color': color, 'amount': amount} for name, color, amount in spending_data
+    ).group_by(Category.name).order_by(func.sum(Transaction.amount).desc()).all()
+    total = sum([amount for _, amount in spending_data])
+    topCategories = [
+        {"name": name, "amount": float(amount), "percentage": round((amount/total)*100, 2) if total > 0 else 0}
+        for name, amount in spending_data
     ]
-    return jsonify(report)
+    return jsonify({"topCategories": topCategories})
 
 @reports_bp.route('/income-vs-expense', methods=['GET'])
 @jwt_required()
-def get_income_vs_expense_trend():
+def get_income_vs_expense():
     current_user_id = get_jwt_identity()
-    
-    # Get data for the last N months (e.g., 6 months)
-    num_months = request.args.get('months', default=6, type=int)
     today = datetime.utcnow().date()
+    # Default: last 6 months
+    num_months = 6
+    # Optionally support timeRange param
+    time_range = request.args.get('timeRange', 'month')
+    if time_range == 'year':
+        num_months = 12
+    elif time_range == 'quarter':
+        num_months = 3
+    # Calculate start and end dates
     end_date = today
-    start_date = today - timedelta(days=(num_months * 30)) # Approximate
-
-    # More accurate start date calculation:
-    current_month = today.month
-    current_year = today.year
-    start_month = current_month - num_months + 1
-    start_year = current_year
+    start_month = today.month - num_months + 1
+    start_year = today.year
     if start_month <= 0:
         start_year -= 1
         start_month += 12
     start_date = datetime(start_year, start_month, 1).date()
 
-
+    # Monthly income and expenses
     income_data = db.session.query(
         extract('year', Transaction.date).label('year'),
         extract('month', Transaction.date).label('month'),
@@ -142,50 +153,140 @@ def get_income_vs_expense_trend():
         Transaction.date <= end_date
     ).group_by('year', 'month').order_by('year', 'month').all()
 
-    # Combine data by month/year
-    trend_data = {}
-    for year, month, total_income in income_data:
-        key = f"{year}-{month:02d}"
-        if key not in trend_data:
-            trend_data[key] = {'month': key, 'income': 0, 'expense': 0}
-        trend_data[key]['income'] = total_income
-    
-    for year, month, total_expense in expense_data:
-        key = f"{year}-{month:02d}"
-        if key not in trend_data:
-            trend_data[key] = {'month': key, 'income': 0, 'expense': 0}
-        trend_data[key]['expense'] = total_expense
+    # Build monthly comparison
+    months = []
+    monthlyComparison = []
+    income_dict = {f"{int(y)}-{int(m):02d}": total for y, m, total in income_data}
+    expense_dict = {f"{int(y)}-{int(m):02d}": total for y, m, total in expense_data}
+    for i in range(num_months):
+        month_date = (datetime(today.year, today.month, 1) - timedelta(days=30*i)).replace(day=1)
+        key = f"{month_date.year}-{month_date.month:02d}"
+        months.append(key)
+    months = sorted(set(months))
+    for key in months:
+        income = income_dict.get(key, 0)
+        expenses = expense_dict.get(key, 0)
+        savings = income - expenses
+        name = datetime.strptime(key, "%Y-%m").strftime("%b %Y")
+        monthlyComparison.append({
+            "name": name,
+            "income": round(income, 2),
+            "expenses": round(expenses, 2),
+            "savings": round(savings, 2)
+        })
+    # Summary
+    totalIncome = sum([m[2] for m in income_data])
+    totalExpenses = sum([m[2] for m in expense_data])
+    netSavings = totalIncome - totalExpenses
+    savingsRate = round((netSavings / totalIncome * 100) if totalIncome > 0 else 0, 2)
+    return jsonify({
+        "totalIncome": round(totalIncome, 2),
+        "totalExpenses": round(totalExpenses, 2),
+        "netSavings": round(netSavings, 2),
+        "savingsRate": savingsRate,
+        "monthlyComparison": monthlyComparison
+    })
 
-    # Ensure all months in the range are present, even if no data
-    report = []
-    current_date = start_date
-    while current_date <= end_date:
-        key = f"{current_date.year}-{current_date.month:02d}"
-        if key in trend_data:
-            report.append(trend_data[key])
+@reports_bp.route('/spending-trends', methods=['GET'])
+@jwt_required()
+def get_spending_trends():
+    current_user_id = get_jwt_identity()
+    today = datetime.utcnow().date()
+    # Default: last 6 months
+    num_months = 6
+    time_range = request.args.get('timeRange', 'month')
+    if time_range == 'year':
+        num_months = 12
+    elif time_range == 'quarter':
+        num_months = 3
+    # Calculate start and end dates
+    end_date = today
+    start_month = today.month - num_months + 1
+    start_year = today.year
+    if start_month <= 0:
+        start_year -= 1
+        start_month += 12
+    start_date = datetime(start_year, start_month, 1).date()
+    # Monthly spending
+    expense_data = db.session.query(
+        extract('year', Transaction.date).label('year'),
+        extract('month', Transaction.date).label('month'),
+        func.sum(Transaction.amount).label('total_expense')
+    ).filter(
+        Transaction.user_id == current_user_id,
+        Transaction.type == 'expense',
+        Transaction.date >= start_date,
+        Transaction.date <= end_date
+    ).group_by('year', 'month').order_by('year', 'month').all()
+    # Build monthlySpending
+    months = []
+    monthlySpending = []
+    expense_dict = {f"{int(y)}-{int(m):02d}": total for y, m, total in expense_data}
+    prev_amount = None
+    for i in range(num_months):
+        month_date = (datetime(today.year, today.month, 1) - timedelta(days=30*i)).replace(day=1)
+        key = f"{month_date.year}-{month_date.month:02d}"
+        months.append(key)
+    months = sorted(set(months))
+    for key in months:
+        amount = expense_dict.get(key, 0)
+        name = datetime.strptime(key, "%Y-%m").strftime("%b %Y")
+        change = ""
+        if prev_amount is not None:
+            if prev_amount == 0:
+                change = "+∞%"
+            else:
+                change = f"{round(((amount - prev_amount) / prev_amount) * 100, 2)}%"
+        monthlySpending.append({
+            "name": name,
+            "amount": round(amount, 2),
+            "change": change
+        })
+        prev_amount = amount
+    # Category trends (this month vs last month)
+    this_month = today.month
+    last_month = this_month - 1 if this_month > 1 else 12
+    this_year = today.year
+    last_year = this_year if this_month > 1 else this_year - 1
+    cat_this = db.session.query(
+        Category.name,
+        func.sum(Transaction.amount).label('total')
+    ).join(Transaction, Category.id == Transaction.category_id).filter(
+        Transaction.user_id == current_user_id,
+        Transaction.type == 'expense',
+        extract('year', Transaction.date) == this_year,
+        extract('month', Transaction.date) == this_month
+    ).group_by(Category.name).all()
+    cat_last = db.session.query(
+        Category.name,
+        func.sum(Transaction.amount).label('total')
+    ).join(Transaction, Category.id == Transaction.category_id).filter(
+        Transaction.user_id == current_user_id,
+        Transaction.type == 'expense',
+        extract('year', Transaction.date) == last_year,
+        extract('month', Transaction.date) == last_month
+    ).group_by(Category.name).all()
+    cat_this_dict = {name: total for name, total in cat_this}
+    cat_last_dict = {name: total for name, total in cat_last}
+    all_cats = set(cat_this_dict.keys()) | set(cat_last_dict.keys())
+    categoryTrends = []
+    for cat in all_cats:
+        this_amt = cat_this_dict.get(cat, 0)
+        last_amt = cat_last_dict.get(cat, 0)
+        if last_amt == 0:
+            change = "+∞%" if this_amt > 0 else "0%"
         else:
-            report.append({'month': key, 'income': 0, 'expense': 0})
-        # Move to the next month
-        next_month = current_date.month + 1
-        next_year = current_date.year
-        if next_month > 12:
-            next_month = 1
-            next_year += 1
-        # Find the first day of the next month safely
-        try:
-            current_date = datetime(next_year, next_month, 1).date()
-        except ValueError: # Handle potential day out of range (e.g. Feb 31)
-             # This shouldn't happen when setting day=1, but safety first
-             if next_month == 2:
-                 current_date = datetime(next_year, next_month, 28).date() 
-             else: # Should handle 30/31 day months correctly
-                 current_date = datetime(next_year, next_month, 1).date() - timedelta(days=1) # Last day of prev month
-                 current_date = current_date + timedelta(days=1) # First day of next month
-    
-    # Sort the final report just in case
-    report.sort(key=lambda x: x['month'])
-
-    return jsonify(report)
+            change = f"{round(((this_amt - last_amt) / last_amt) * 100, 2)}%"
+        categoryTrends.append({
+            "category": cat,
+            "thisMonth": round(this_amt, 2),
+            "lastMonth": round(last_amt, 2),
+            "change": change
+        })
+    return jsonify({
+        "monthlySpending": monthlySpending,
+        "categoryTrends": categoryTrends
+    })
 
 # Remove or update old routes if they are no longer needed or clash
 # For example, remove the old '/expense-income' if '/income-vs-expense' replaces it

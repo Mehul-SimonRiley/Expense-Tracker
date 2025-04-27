@@ -74,12 +74,7 @@ export default function DashboardTab({ onError }) {
         // Try to fetch category breakdown
         let categoryBreakdown
         try {
-          categoryBreakdown = await categoriesAPI.getAll()
-          // Add percentage data if not provided by API
-          categoryBreakdown = categoryBreakdown.map((cat, index, arr) => ({
-            ...cat,
-            percentage: cat.percentage || Math.round(100 / arr.length),
-          }))
+          categoryBreakdown = await categoriesAPI.getExpenseBreakdown()
         } catch (err) {
           console.warn("Could not fetch category breakdown, using empty array", err)
           categoryBreakdown = []

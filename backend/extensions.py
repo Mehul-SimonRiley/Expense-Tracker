@@ -19,3 +19,13 @@ limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["200 per day", "50 per hour"]
 )
+
+@jwt.user_identity_loader
+def user_identity_lookup(user):
+    return user.id
+
+@jwt.user_lookup_loader
+def user_lookup_callback(_jwt_header, jwt_data):
+    from models.user import User  # Import here to avoid circular dependency
+    identity = jwt_data["sub"]
+    return User.query.filter_by(id=identity).one_or_none()

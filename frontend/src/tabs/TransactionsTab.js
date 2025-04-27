@@ -428,6 +428,114 @@ export default function TransactionsTab({ onError }) {
         </div>
       )}
 
+      {/* Edit Transaction Form */}
+      {editingTransaction && (
+        <div className="bg-white p-4 rounded-lg shadow mb-6">
+          <h3 className="text-lg font-semibold mb-4">Edit Transaction</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description
+              </label>
+              <input
+                type="text"
+                className="form-input w-full"
+                value={editingTransaction.description}
+                onChange={e =>
+                  setEditingTransaction({ ...editingTransaction, description: e.target.value })
+                }
+                placeholder="Transaction description"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Amount
+              </label>
+              <input
+                type="number"
+                className="form-input w-full"
+                value={editingTransaction.amount}
+                onChange={e =>
+                  setEditingTransaction({ ...editingTransaction, amount: e.target.value })
+                }
+                placeholder="Amount"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Date
+              </label>
+              <input
+                type="date"
+                className="form-input w-full"
+                value={editingTransaction.date}
+                onChange={e =>
+                  setEditingTransaction({ ...editingTransaction, date: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Category
+              </label>
+              <select
+                className="form-select w-full"
+                value={editingTransaction.category}
+                onChange={e =>
+                  setEditingTransaction({ ...editingTransaction, category: e.target.value })
+                }
+              >
+                <option value="">Select Category</option>
+                {categories.map(category => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Type
+              </label>
+              <select
+                className="form-select w-full"
+                value={editingTransaction.type}
+                onChange={e =>
+                  setEditingTransaction({ ...editingTransaction, type: e.target.value })
+                }
+              >
+                <option value="expense">Expense</option>
+                <option value="income">Income</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Notes
+              </label>
+              <textarea
+                className="form-input w-full"
+                value={editingTransaction.notes || ""}
+                onChange={e =>
+                  setEditingTransaction({ ...editingTransaction, notes: e.target.value })
+                }
+                placeholder="Additional notes"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end mt-4 space-x-2">
+            <button
+              className="btn btn-outline"
+              onClick={() => setEditingTransaction(null)}
+            >
+              Cancel
+            </button>
+            <button className="btn btn-primary" onClick={handleEditTransaction}>
+              Save Changes
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Transactions List */}
       <div className="bg-white rounded-lg shadow">
         <div className="p-4 border-b">

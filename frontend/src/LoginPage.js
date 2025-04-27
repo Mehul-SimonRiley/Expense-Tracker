@@ -27,11 +27,16 @@ export default function LoginPage({ onLogin }) {
       }
 
       const { access_token } = response.data
-      localStorage.setItem("token", access_token) // Save token to localStorage
-      onLogin(access_token) // Pass token to App component
+      if (access_token) {
+        localStorage.setItem("token", access_token)
+        api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
+        onLogin(access_token)
+      } else {
+        throw new Error("No access token received from server")
+      }
     } catch (error) {
       console.error("Auth error:", error)
-      setError(error.response?.data?.msg || "Authentication failed")
+      setError(error.response?.data?.msg || error.message || "Authentication failed")
     } finally {
       setLoading(false)
     }

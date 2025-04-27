@@ -15,7 +15,9 @@ export default function CalendarTab() {
       try {
         const year = currentMonth.getFullYear();
         const month = currentMonth.getMonth() + 1; // JavaScript months are 0-indexed
-        const data = await getTransactions({ year, month });
+        const startDate = `${year}-${month.toString().padStart(2, "0")}-01`;
+        const endDate = `${year}-${month.toString().padStart(2, "0")}-${getDaysInMonth(year, currentMonth.getMonth()).toString().padStart(2, "0")}`;
+        const data = await getTransactions(startDate, endDate);
         setTransactions(data);
       } catch (error) {
         console.error("Error fetching calendar transactions:", error);

@@ -24,6 +24,7 @@ export default function DashboardTab({ onError }) {
     budgetStatus: [],
     recentTransactions: [],
     categoryBreakdown: [],
+    expenseTrends: [],
   })
 
   useEffect(() => {
@@ -67,6 +68,7 @@ export default function DashboardTab({ onError }) {
           console.warn("Could not fetch budget status, using empty array", err)
           budgetStatus = []
         }
+        console.log('Budget Status for chart:', budgetStatus);
 
         // Get recent transactions
         const recentTransactions = await transactionsAPI.getAll({ limit: 5 })
@@ -80,11 +82,39 @@ export default function DashboardTab({ onError }) {
           categoryBreakdown = []
         }
 
+        // Fetch all transactions for trends
+        let allTransactions = [];
+        try {
+          allTransactions = await transactionsAPI.getAll();
+        } catch (err) {
+          console.warn('Could not fetch all transactions for trends', err);
+          allTransactions = [];
+        }
+        // Calculate monthly expense trends for the last 12 months
+        const trendsMap = {};
+        allTransactions.forEach((t) => {
+          if (t.type === 'expense') {
+            const date = new Date(t.date);
+            const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            trendsMap[month] = (trendsMap[month] || 0) + Number.parseFloat(t.amount);
+          }
+        });
+        // Get last 12 months
+        const now = new Date();
+        const months = [];
+        for (let i = 11; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          months.push(m);
+        }
+        const expenseTrends = months.map((m) => ({ month: m, total: trendsMap[m] || 0 }));
+
         setDashboardData({
           summary,
           budgetStatus: Array.isArray(budgetStatus) ? budgetStatus : [],
           recentTransactions: Array.isArray(recentTransactions) ? recentTransactions : [],
           categoryBreakdown: Array.isArray(categoryBreakdown) ? categoryBreakdown : [],
+          expenseTrends,
         })
 
         if (onError) onError(null)
@@ -214,10 +244,19 @@ export default function DashboardTab({ onError }) {
           </div>
           <div className="card-content" style={{ height: '300px' }}>
             {dashboardData.budgetStatus.length > 0 ? (
-              <BarChart
-                data={createBudgetVsActualData(dashboardData.budgetStatus)}
-                title="Budget vs Actual"
-              />
+              (() => {
+                const mappedBudgets = dashboardData.budgetStatus.map(b => ({
+                  category: b.category_name || b.category,
+                  limit: b.amount,
+                  spent: b.spent ?? b.current_spending ?? 0,
+                }));
+                return (
+                  <BarChart
+                    data={createBudgetVsActualData(mappedBudgets)}
+                    title="Budget vs Actual"
+                  />
+                );
+              })()
             ) : (
               <div className="text-center py-4 text-muted">
                 No budget data available. Set up budgets in the Budget tab.

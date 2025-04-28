@@ -59,14 +59,14 @@ export default function SettingsTab() {
     <div>
       <h1 className="page-title">Settings</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="flex flex-col md:flex-row gap-6">
         {/* Settings Navigation */}
-        <div className="card">
-          <div className="card-content p-0">
+        <div className="w-full md:w-1/4 md:min-h-[500px] border-r bg-white rounded-lg shadow-sm sticky top-4">
+          <div className="p-0">
             <ul className="divide-y">
               <li>
                 <button
-                  className={`w-full text-left px-4 py-3 ${activeSection === "profile" ? "bg-primary text-white" : ""}`}
+                  className={`w-full text-left px-4 py-3 rounded-none ${activeSection === "profile" ? "bg-black text-white" : "hover:bg-gray-100"}`}
                   onClick={() => setActiveSection("profile")}
                 >
                   Profile
@@ -74,7 +74,7 @@ export default function SettingsTab() {
               </li>
               <li>
                 <button
-                  className={`w-full text-left px-4 py-3 ${activeSection === "account" ? "bg-primary text-white" : ""}`}
+                  className={`w-full text-left px-4 py-3 rounded-none ${activeSection === "account" ? "bg-black text-white" : "hover:bg-gray-100"}`}
                   onClick={() => setActiveSection("account")}
                 >
                   Account
@@ -82,7 +82,7 @@ export default function SettingsTab() {
               </li>
               <li>
                 <button
-                  className={`w-full text-left px-4 py-3 ${activeSection === "preferences" ? "bg-primary text-white" : ""}`}
+                  className={`w-full text-left px-4 py-3 rounded-none ${activeSection === "preferences" ? "bg-black text-white" : "hover:bg-gray-100"}`}
                   onClick={() => setActiveSection("preferences")}
                 >
                   Preferences
@@ -90,7 +90,7 @@ export default function SettingsTab() {
               </li>
               <li>
                 <button
-                  className={`w-full text-left px-4 py-3 ${activeSection === "notifications" ? "bg-primary text-white" : ""}`}
+                  className={`w-full text-left px-4 py-3 rounded-none ${activeSection === "notifications" ? "bg-black text-white" : "hover:bg-gray-100"}`}
                   onClick={() => setActiveSection("notifications")}
                 >
                   Notifications
@@ -98,7 +98,7 @@ export default function SettingsTab() {
               </li>
               <li>
                 <button
-                  className={`w-full text-left px-4 py-3 ${activeSection === "data" ? "bg-primary text-white" : ""}`}
+                  className={`w-full text-left px-4 py-3 rounded-none ${activeSection === "data" ? "bg-black text-white" : "hover:bg-gray-100"}`}
                   onClick={() => setActiveSection("data")}
                 >
                   Data Management
@@ -109,7 +109,7 @@ export default function SettingsTab() {
         </div>
 
         {/* Settings Content */}
-        <div className="card md:col-span-3">
+        <div className="card flex-1">
           {activeSection === "profile" && (
             <>
               <div className="card-header">
@@ -147,7 +147,7 @@ export default function SettingsTab() {
                   <div className="form-group">
                     <label className="form-label">Profile Picture</label>
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-white text-xl font-bold">
+                      <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center text-white text-xl font-bold">
                         SP
                       </div>
                       <button className="btn btn-outline">Change Picture</button>

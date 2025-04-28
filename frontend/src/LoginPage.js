@@ -26,11 +26,11 @@ export default function LoginPage({ onLogin }) {
         response = await api.post("/auth/register", { email, password, name })
       }
 
-      const { access_token } = response.data
+      const { access_token, user } = response.data
       if (access_token) {
         localStorage.setItem("token", access_token)
         api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
-        onLogin(access_token)
+        onLogin(user)
       } else {
         throw new Error("No access token received from server")
       }

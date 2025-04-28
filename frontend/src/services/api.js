@@ -23,12 +23,30 @@ api.interceptors.request.use(
 // Add a response interceptor to handle errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      // Don't reload the page, just redirect to login
-      window.location.href = '/';
-      return Promise.reject(new Error("Unauthorized"));
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // If the error is 401 and we haven't tried to refresh the token yet
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        // Try to refresh the token
+        const response = await api.post('/auth/refresh');
+        const { access_token } = response.data;
+        
+        // Store the new token
+        localStorage.setItem('token', access_token);
+        
+        // Retry the original request with the new token
+        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        // If refresh fails, redirect to login
+        localStorage.removeItem('token');
+        window.location.href = '/';
+        return Promise.reject(refreshError);
+      }
     } else if (error.response?.status === 422) {
       console.error("Validation error:", error.response.data);
       return Promise.reject(error);

@@ -24,8 +24,9 @@ limiter = Limiter(
 def user_identity_lookup(identity):
     return identity
 
-@jwt.user_lookup_loader
-def user_lookup_callback(_jwt_header, jwt_data):
-    from models.user import User  # Import here to avoid circular dependency
-    identity = jwt_data["sub"]
-    return User.query.filter_by(id=identity).one_or_none()
+def configure_jwt(app):
+    @jwt.user_lookup_loader
+    def user_lookup_callback(_jwt_header, jwt_data):
+        from models.user import User
+        identity = jwt_data["sub"]
+        return User.query.filter_by(id=identity).one_or_none()

@@ -1,9 +1,9 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { FiBarChart2, FiCreditCard, FiDollarSign, FiDownload, FiPieChart, FiPlus } from "react-icons/fi"
+import { FiCreditCard, FiDollarSign, FiDownload, FiPieChart, FiPlus } from "react-icons/fi"
 import { dashboardAPI, transactionsAPI, categoriesAPI, budgetsAPI } from "../services/api"
-import { formatCurrency, formatDate, formatPercentage } from '../utils/format'
+import { formatCurrency, formatDate } from '../utils/format'
 import { LineChart, BarChart, PieChart, createExpenseBreakdownData, createTrendData, createBudgetVsActualData } from '../components/Charts'
 
 export default function DashboardTab({ onError }) {
@@ -338,7 +338,10 @@ export default function DashboardTab({ onError }) {
           <div className="card-content" style={{ height: '300px' }}>
             {dashboardData.expenseTrends?.length > 0 ? (
               <LineChart
-                data={createTrendData(dashboardData.expenseTrends, "Expense Trend")}
+                data={createTrendData(
+                  dashboardData.expenseTrends.map(e => ({ date: e.month, amount: e.total })),
+                  "Expense Trend"
+                )}
                 title="Monthly Expense Trend"
               />
             ) : (

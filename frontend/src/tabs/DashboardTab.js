@@ -8,7 +8,6 @@ import { LineChart, BarChart, PieChart, createExpenseBreakdownData, createTrendD
 
 export default function DashboardTab({ onError }) {
   const [timeframe, setTimeframe] = useState("month")
-  const [chartView, setChartView] = useState("monthly")
   const [isLoading, setIsLoading] = useState(true)
   const [dashboardData, setDashboardData] = useState({
     summary: {
@@ -152,10 +151,7 @@ export default function DashboardTab({ onError }) {
             style={{ width: "180px" }}
           >
             <option value="today">Today</option>
-            <option value="week">This Week</option>
             <option value="month">This Month</option>
-            <option value="quarter">This Quarter</option>
-            <option value="year">This Year</option>
           </select>
           <button className="btn btn-outline btn-sm">
             <FiDownload />
@@ -199,30 +195,10 @@ export default function DashboardTab({ onError }) {
       </div>
 
       {/* Expense Breakdown and Budget */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="card lg:col-span-2">
           <div className="card-header">
             <h2 className="card-title">Expense Breakdown</h2>
-            <div className="flex border rounded-md overflow-hidden">
-              <button
-                className={`btn ${chartView === "weekly" ? "btn-primary" : "btn-outline"} btn-sm`}
-                onClick={() => setChartView("weekly")}
-              >
-                Weekly
-              </button>
-              <button
-                className={`btn ${chartView === "monthly" ? "btn-primary" : "btn-outline"} btn-sm`}
-                onClick={() => setChartView("monthly")}
-              >
-                Monthly
-              </button>
-              <button
-                className={`btn ${chartView === "yearly" ? "btn-primary" : "btn-outline"} btn-sm`}
-                onClick={() => setChartView("yearly")}
-              >
-                Yearly
-              </button>
-            </div>
           </div>
           <div className="card-content" style={{ height: '300px' }}>
             {dashboardData.categoryBreakdown.length > 0 ? (

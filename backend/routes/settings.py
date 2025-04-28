@@ -4,9 +4,61 @@ from models.user import User
 from models.settings import Settings
 from extensions import db
 import logging
+import os
+from werkzeug.utils import secure_filename
 
 logger = logging.getLogger(__name__)
 settings_bp = Blueprint("settings", __name__)
+
+# Configure upload folder
+UPLOAD_FOLDER = 'profile_pics'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Profile Picture Upload
+@settings_bp.route("/profile/picture", methods=["POST"])
+@jwt_required()
+def upload_profile_picture():
+    try:
+        if 'profile_picture' not in request.files:
+            return jsonify({"error": "No file part"}), 400
+            
+        file = request.files['profile_picture']
+        if file.filename == '':
+            return jsonify({"error": "No selected file"}), 400
+            
+        if file and allowed_file(file.filename):
+            user_id = get_jwt_identity()
+            user = User.query.get(user_id)
+            
+            if not user:
+                return jsonify({"error": "User not found"}), 404
+                
+            filename = secure_filename(f"{user_id}_{file.filename}")
+            file_path = os.path.join(UPLOAD_FOLDER, filename)
+            
+            # Create upload folder if it doesn't exist
+            if not os.path.exists(UPLOAD_FOLDER):
+                os.makedirs(UPLOAD_FOLDER)
+                
+            file.save(file_path)
+            
+            # Update user's profile picture path
+            user.profile_picture = file_path
+            db.session.commit()
+            
+            return jsonify({
+                "message": "Profile picture uploaded successfully",
+                "profile_picture": file_path
+            })
+            
+        return jsonify({"error": "Invalid file type"}), 400
+        
+    except Exception as e:
+        logger.error(f"Error uploading profile picture: {str(e)}")
+        return jsonify({"error": "Failed to upload profile picture"}), 500
 
 # Update Profile
 @settings_bp.route("/profile", methods=["PUT"])

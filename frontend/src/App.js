@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { FiMenu, FiSearch, FiBell, FiDollarSign, FiHome, FiGrid, FiPieChart, FiLogOut, FiCalendar, FiSettings, FiBarChart2 } from 'react-icons/fi';
-import { CustomTabs } from './components/ui/tabs';
+import { FiMenu, FiBell, FiDollarSign, FiHome, FiGrid, FiPieChart, FiLogOut, FiCalendar, FiSettings, FiBarChart2 } from 'react-icons/fi';
 import DashboardTab from './tabs/DashboardTab';
 import CategoriesTab from './tabs/CategoriesTab';
 import BudgetsTab from './tabs/BudgetsTab';
@@ -12,7 +11,7 @@ import ReportsTab from './tabs/ReportsTab';
 import CalendarTab from './tabs/CalendarTab';
 import SettingsTab from './tabs/SettingsTab';
 import LoginPage from './LoginPage';
-import { auth } from './api';
+import { authService } from './services/auth';
 import './ExpenseTracker.css';
 
 const App = () => {
@@ -25,19 +24,11 @@ const App = () => {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    setIsAuthenticated(false);
-                    setLoading(false);
-                    return;
-                }
-
-                const userData = await auth.getCurrentUser();
+                const userData = await authService.getCurrentUser();
                 setUser(userData);
-                setIsAuthenticated(true);
+                setIsAuthenticated(!!userData);
             } catch (error) {
                 console.error('Auth check failed:', error);
-                localStorage.removeItem('token');
                 setIsAuthenticated(false);
             } finally {
                 setLoading(false);
@@ -46,6 +37,13 @@ const App = () => {
 
         checkAuth();
     }, []);
+
+    // Update user data in localStorage when it changes
+    useEffect(() => {
+        if (user) {
+            authService.updateUser(user);
+        }
+    }, [user]);
 
     // Helper to get initials from name or email
     const getInitials = (user) => {
@@ -112,14 +110,10 @@ const App = () => {
         }
     ];
 
-    const handleLogout = async () => {
-        try {
-            await auth.logout();
-            localStorage.removeItem('token');
-            setIsAuthenticated(false);
-        } catch (error) {
-            console.error('Logout error:', error);
-        }
+    const handleLogout = () => {
+        authService.logout();
+        setIsAuthenticated(false);
+        setUser(null);
     };
 
     const handleTabChange = (value) => {
@@ -163,11 +157,17 @@ const App = () => {
                                             <span className="notification-badge">3</span>
                                         </button>
                                         <button
-                                            className="avatar w-10 h-10 !bg-black rounded-full flex items-center justify-center text-white text-lg font-bold focus:outline-none"
+                                            className="avatar-button"
                                             onClick={() => setActiveTab('settings')}
                                             title="Profile Settings"
                                         >
-                                            {getInitials(user)}
+                                            <div className="avatar">
+                                                {user?.profile_picture ? (
+                                                    <img src={user.profile_picture} alt="Profile" className="avatar-image" />
+                                                ) : (
+                                                    <span className="avatar-initials">{getInitials(user)}</span>
+                                                )}
+                                            </div>
                                         </button>
                                     </div>
                                 </header>

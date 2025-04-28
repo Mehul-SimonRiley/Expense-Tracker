@@ -8,9 +8,10 @@ export default function SettingsTab({ user }) {
   const [activeSection, setActiveSection] = useState("profile")
 
   const [profileData, setProfileData] = useState({
-    name: "",
-    email: "",
-    phone: "",
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    profile_picture: user?.profile_picture || null,
   });
 
   const [preferencesData, setPreferencesData] = useState({
@@ -24,6 +25,17 @@ export default function SettingsTab({ user }) {
     email_notifications: true,
     push_notifications: true,
   });
+
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        profile_picture: user.profile_picture || null,
+      });
+    }
+  }, [user]);
 
   // Helper to get initials from name or email
   const getInitials = (user) => {
@@ -64,6 +76,23 @@ export default function SettingsTab({ user }) {
     } catch (error) {
       console.error("Error updating notifications:", error);
       alert("Failed to update notifications. Please try again later.");
+    }
+  };
+
+  const handleProfilePictureChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const formData = new FormData();
+        formData.append('profile_picture', file);
+        
+        try {
+            const response = await settingsService.uploadProfilePicture(formData);
+            setProfileData({ ...profileData, profile_picture: response.profile_picture });
+            alert("Profile picture updated successfully");
+        } catch (error) {
+            console.error("Error uploading profile picture:", error);
+            alert("Failed to upload profile picture. Please try again later.");
+        }
     }
   };
 
@@ -159,8 +188,24 @@ export default function SettingsTab({ user }) {
                   <div className="form-group">
                     <label className="form-label">Profile Picture</label>
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center text-white text-xl font-bold">
-                        {getInitials(user)}
+                      <div className="avatar">
+                        {profileData.profile_picture ? (
+                          <img src={profileData.profile_picture} alt="Profile" className="avatar-image" />
+                        ) : (
+                          <span className="avatar-initials">{getInitials(user)}</span>
+                        )}
+                      </div>
+                      <div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleProfilePictureChange}
+                          className="hidden"
+                          id="profile-picture-input"
+                        />
+                        <label htmlFor="profile-picture-input" className="btn btn-outline">
+                          Change Picture
+                        </label>
                       </div>
                     </div>
                   </div>

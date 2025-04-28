@@ -1,142 +1,116 @@
 "use client"
 
-import { useState } from "react"
-import { FiDollarSign, FiMail, FiLock, FiUser, FiAlertCircle } from "react-icons/fi"
-import api from "./services/api"
-import "./LoginPage.css"
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import './LoginPage.css';
+import { authService } from './services/auth';
 
-export default function LoginPage({ onLogin }) {
-  const [isLogin, setIsLogin] = useState(true)
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [name, setName] = useState("")
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const [isLogin, setIsLogin] = useState(true);
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    name: ''
+  });
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
+    e.preventDefault();
+    setError('');
 
     try {
-      let response
       if (isLogin) {
-        response = await api.post("/auth/login", { email, password })
+        const { email, password } = formData;
+        const response = await authService.login(email, password);
+        if (response.user) {
+          navigate('/dashboard');
+        }
       } else {
-        response = await api.post("/auth/register", { email, password, name })
+        const { email, password, name } = formData;
+        const response = await authService.register({ email, password, name });
+        if (response.user) {
+          navigate('/dashboard');
+        }
       }
-
-      const { access_token, user } = response.data
-      if (access_token) {
-        localStorage.setItem("token", access_token)
-        api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
-        onLogin(user)
-      } else {
-        throw new Error("No access token received from server")
-      }
-    } catch (error) {
-      console.error("Auth error:", error)
-      setError(error.response?.data?.msg || error.message || "Authentication failed")
-    } finally {
-      setLoading(false)
+    } catch (err) {
+      setError(err.message || 'An error occurred. Please try again.');
     }
-  }
+  };
 
   return (
     <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
-          <div className="login-logo">
-            <FiDollarSign className="login-logo-icon" />
-            <h1 className="login-logo-text">Traxpense</h1>
-          </div>
-          <p className="login-subtitle">Your Personal Finance Tracker</p>
-        </div>
-
-        <div className="login-tabs">
-          <button className={`login-tab ${isLogin ? "active" : ""}`} onClick={() => setIsLogin(true)}>
-            Login
-          </button>
-          <button className={`login-tab ${!isLogin ? "active" : ""}`} onClick={() => setIsLogin(false)}>
-            Register
-          </button>
-        </div>
-
-        {error && (
-          <div className="error-message">
-            <FiAlertCircle />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="login-form">
+      <div className="login-box">
+        <h2>{isLogin ? 'Login' : 'Register'}</h2>
+        
+        {error && <div className="error-message">{error}</div>}
+        
+        <form onSubmit={handleSubmit}>
           {!isLogin && (
             <div className="form-group">
-              <label className="form-label">
-                <FiUser className="input-icon" />
-                Full Name
-              </label>
+              <label htmlFor="name">Name</label>
               <input
                 type="text"
-                className="form-input"
-                placeholder="Enter your full name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
                 required={!isLogin}
               />
             </div>
           )}
-
+          
           <div className="form-group">
-            <label className="form-label">
-              <FiMail className="input-icon" />
-              Email Address
-            </label>
+            <label htmlFor="email">Email</label>
             <input
               type="email"
-              className="form-input"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
               required
             />
           </div>
-
+          
           <div className="form-group">
-            <label className="form-label">
-              <FiLock className="input-icon" />
-              Password
-            </label>
+            <label htmlFor="password">Password</label>
             <input
               type="password"
-              className="form-input"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
               required
             />
           </div>
-
-          {isLogin && (
-            <div className="forgot-password">
-              <a href="#reset">Forgot password?</a>
-            </div>
-          )}
-
-          <button type="submit" className="login-button" disabled={loading}>
-            {loading ? "Please wait..." : isLogin ? "Login" : "Create Account"}
+          
+          <button type="submit">
+            {isLogin ? 'Login' : 'Register'}
           </button>
         </form>
-
-        <div className="login-footer">
-          <p>
-            {isLogin ? "Don't have an account? " : "Already have an account? "}
-            <button className="text-link" onClick={() => setIsLogin(!isLogin)}>
-              {isLogin ? "Sign up" : "Sign in"}
-            </button>
-          </p>
+        
+        <div className="toggle-form">
+          {isLogin ? "Don't have an account? " : "Already have an account? "}
+          <button 
+            type="button" 
+            className="toggle-button"
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setError('');
+              setFormData({ email: '', password: '', name: '' });
+            }}
+          >
+            {isLogin ? 'Register' : 'Login'}
+          </button>
         </div>
       </div>
     </div>
-  )
+  );
 }

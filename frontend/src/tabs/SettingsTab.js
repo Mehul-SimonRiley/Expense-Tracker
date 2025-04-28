@@ -3,15 +3,15 @@
 import { useState, useEffect } from "react"
 import { FiSave } from "react-icons/fi"
 import { settingsService } from "../services/api";
+import { authService } from "../services/auth";
 
 export default function SettingsTab({ user }) {
   const [activeSection, setActiveSection] = useState("profile")
 
   const [profileData, setProfileData] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
-    phone: user?.phone || "",
-    profile_picture: user?.profile_picture || null,
+    name: "",
+    email: "",
+    phone: "",
   });
 
   const [preferencesData, setPreferencesData] = useState({
@@ -27,14 +27,41 @@ export default function SettingsTab({ user }) {
   });
 
   useEffect(() => {
-    if (user) {
-      setProfileData({
-        name: user.name || "",
-        email: user.email || "",
-        phone: user.phone || "",
-        profile_picture: user.profile_picture || null,
-      });
-    }
+    const loadUserData = async () => {
+      try {
+        // First try to get from localStorage
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setProfileData({
+            name: parsedUser.name || "",
+            email: parsedUser.email || "",
+            phone: parsedUser.phone || "",
+          });
+        } else if (user) {
+          // Fallback to props if localStorage is empty
+          setProfileData({
+            name: user.name || "",
+            email: user.email || "",
+            phone: user.phone || "",
+          });
+        } else {
+          // If no user data is available, try to fetch from API
+          const currentUser = await authService.getCurrentUser();
+          if (currentUser) {
+            setProfileData({
+              name: currentUser.name || "",
+              email: currentUser.email || "",
+              phone: currentUser.phone || "",
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      }
+    };
+
+    loadUserData();
   }, [user]);
 
   // Helper to get initials from name or email
@@ -51,11 +78,28 @@ export default function SettingsTab({ user }) {
 
   const handleSaveProfile = async () => {
     try {
-      await settingsService.updateProfile(profileData);
-      alert("Profile updated successfully");
+      // Call the auth profile update endpoint instead of settings
+      const response = await authService.updateProfile(profileData);
+      
+      if (response.data && response.data.user) {
+        // Update the stored user data with the response
+        const updatedUser = response.data.user;
+        authService.updateUser(updatedUser);
+        
+        // Update local state
+        setProfileData({
+          name: updatedUser.name || "",
+          email: updatedUser.email || "",
+          phone: updatedUser.phone || "",
+        });
+        
+        alert("Profile updated successfully");
+      } else {
+        throw new Error("Invalid response format");
+      }
     } catch (error) {
       console.error("Error updating profile:", error);
-      alert("Failed to update profile. Please try again later.");
+      alert(error.response?.data?.error || "Failed to update profile. Please try again later.");
     }
   };
 
@@ -76,23 +120,6 @@ export default function SettingsTab({ user }) {
     } catch (error) {
       console.error("Error updating notifications:", error);
       alert("Failed to update notifications. Please try again later.");
-    }
-  };
-
-  const handleProfilePictureChange = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        const formData = new FormData();
-        formData.append('profile_picture', file);
-        
-        try {
-            const response = await settingsService.uploadProfilePicture(formData);
-            setProfileData({ ...profileData, profile_picture: response.profile_picture });
-            alert("Profile picture updated successfully");
-        } catch (error) {
-            console.error("Error uploading profile picture:", error);
-            alert("Failed to upload profile picture. Please try again later.");
-        }
     }
   };
 
@@ -159,6 +186,14 @@ export default function SettingsTab({ user }) {
               <div className="card-content">
                 <div className="grid grid-cols-1 gap-4">
                   <div className="form-group">
+                    <label className="form-label">Profile Avatar</label>
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-semibold text-gray-700">
+                        {getInitials(profileData) || "U"}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="form-group">
                     <label className="form-label">Full Name</label>
                     <input
                       type="text"
@@ -184,30 +219,6 @@ export default function SettingsTab({ user }) {
                       value={profileData.phone}
                       onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
                     />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Profile Picture</label>
-                    <div className="flex items-center gap-4">
-                      <div className="avatar">
-                        {profileData.profile_picture ? (
-                          <img src={profileData.profile_picture} alt="Profile" className="avatar-image" />
-                        ) : (
-                          <span className="avatar-initials">{getInitials(user)}</span>
-                        )}
-                      </div>
-                      <div>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleProfilePictureChange}
-                          className="hidden"
-                          id="profile-picture-input"
-                        />
-                        <label htmlFor="profile-picture-input" className="btn btn-outline">
-                          Change Picture
-                        </label>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>

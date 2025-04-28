@@ -161,12 +161,8 @@ const App = () => {
                                             onClick={() => setActiveTab('settings')}
                                             title="Profile Settings"
                                         >
-                                            <div className="avatar">
-                                                {user?.profile_picture ? (
-                                                    <img src={user.profile_picture} alt="Profile" className="avatar-image" />
-                                                ) : (
-                                                    <span className="avatar-initials">{getInitials(user)}</span>
-                                                )}
+                                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-lg font-semibold text-gray-700">
+                                                {getInitials(user) || "U"}
                                             </div>
                                         </button>
                                     </div>

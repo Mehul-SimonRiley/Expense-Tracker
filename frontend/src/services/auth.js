@@ -1,60 +1,88 @@
-import axios from 'axios';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+import api from './api';
 
 export const authService = {
-    login: async (email, password) => {
+    async login(email, password) {
         try {
-            const response = await axios.post(`${API_URL}/auth/login`, { email, password });
-            if (response.data.token) {
-                localStorage.setItem('token', response.data.token);
-                localStorage.setItem('user', JSON.stringify(response.data.user));
-            }
+            const response = await api.post('/auth/login', { email, password });
+            const { access_token, user } = response.data;
+            
+            // Store both token and user data
+            localStorage.setItem('token', access_token);
+            localStorage.setItem('user', JSON.stringify(user));
+            
             return response.data;
         } catch (error) {
             throw error.response?.data || error;
         }
     },
 
-    logout: () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+    async register(userData) {
+        try {
+            const response = await api.post('/auth/register', userData);
+            const { access_token, user } = response.data;
+            
+            // Store both token and user data
+            localStorage.setItem('token', access_token);
+            localStorage.setItem('user', JSON.stringify(user));
+            
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || error;
+        }
     },
 
-    getCurrentUser: async () => {
+    async logout() {
         try {
-            // First check if we have user data in localStorage
+            await api.post('/auth/logout');
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            // Always clear local storage on logout
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+        }
+    },
+
+    async getCurrentUser() {
+        try {
+            // First try to get from localStorage
             const storedUser = localStorage.getItem('user');
             if (storedUser) {
                 return JSON.parse(storedUser);
             }
 
-            // If no stored user, try to fetch from API
-            const token = localStorage.getItem('token');
-            if (!token) return null;
-
-            const response = await axios.get(`${API_URL}/auth/me`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            // If not in localStorage, fetch from API
+            const response = await api.get('/users/profile');
+            const user = response.data;
             
-            // Store the user data
-            if (response.data) {
-                localStorage.setItem('user', JSON.stringify(response.data));
-            }
+            // Update localStorage with fresh data
+            localStorage.setItem('user', JSON.stringify(user));
             
-            return response.data;
+            return user;
         } catch (error) {
-            localStorage.removeItem('token');
+            // If there's an error, clear potentially invalid data
             localStorage.removeItem('user');
-            return null;
+            throw error;
         }
     },
 
-    isAuthenticated: () => {
-        return !!localStorage.getItem('token');
+    updateUser(userData) {
+        if (userData) {
+            localStorage.setItem('user', JSON.stringify(userData));
+        }
     },
 
-    updateUser: (userData) => {
-        localStorage.setItem('user', JSON.stringify(userData));
+    async updateProfile(profileData) {
+        try {
+            const response = await api.put('/users/profile', profileData);
+            const updatedUser = response.data;
+            
+            // Update localStorage with new user data
+            this.updateUser(updatedUser);
+            
+            return { data: { user: updatedUser } };
+        } catch (error) {
+            throw error;
+        }
     }
 }; 

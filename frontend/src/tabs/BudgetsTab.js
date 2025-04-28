@@ -50,8 +50,26 @@ export default function BudgetsTab() {
   }
 
   const handleAddBudget = async () => {
+    // Validate fields
+    if (!newBudget.category_id || !newBudget.amount || !newBudget.month) {
+      alert('Please fill all fields before adding a budget.');
+      return;
+    }
+    // Convert month to start_date and end_date
+    const [year, month] = newBudget.month.split('-');
+    const start_date = `${year}-${month}-01`;
+    // Get last day of month
+    const end_date = new Date(year, month, 0).toISOString().slice(0, 10);
+    // Prepare payload for backend
+    const payload = {
+      category_id: newBudget.category_id,
+      amount: newBudget.amount,
+      start_date,
+      end_date
+    };
+    console.log('Creating budget with:', payload);
     try {
-      await budgetsAPI.create(newBudget)
+      await budgetsAPI.create(payload)
       setNewBudget({
         category_id: "",
         amount: "",

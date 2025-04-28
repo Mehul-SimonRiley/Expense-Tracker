@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react"
 import { FiEdit2, FiPlus, FiTrash2 } from "react-icons/fi"
 import { categoriesAPI } from "../services/api"
+import { budgetsAPI } from "../services/api"
 import { formatCurrency } from "../utils/format"
 
 export default function CategoriesTab() {
   const [categories, setCategories] = useState([])
+  const [budgets, setBudgets] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showAddForm, setShowAddForm] = useState(false)
@@ -20,6 +22,7 @@ export default function CategoriesTab() {
 
   useEffect(() => {
     fetchCategories()
+    fetchBudgets()
   }, [])
 
   const fetchCategories = async () => {
@@ -34,6 +37,16 @@ export default function CategoriesTab() {
       setCategories([])
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchBudgets = async () => {
+    try {
+      const data = await budgetsAPI.getAll();
+      setBudgets(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching budgets:', err);
+      setBudgets([]);
     }
   }
 
@@ -275,39 +288,47 @@ export default function CategoriesTab() {
             <p className="text-gray-500">No categories found. Add your first category to get started.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {categories.map((category) => (
-                <div
-                  key={category.id}
-                  className="border rounded-lg p-4"
-                  style={{ borderLeftColor: category.color, borderLeftWidth: "4px" }}
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="flex items-center">
-                        <span className="text-2xl mr-2">{category.icon}</span>
-                        <h3 className="font-bold">{category.name}</h3>
+              {categories.map((category) => {
+                const now = new Date();
+                const currentBudget = budgets.find(budget =>
+                  String(budget.category_id) === String(category.id) &&
+                  new Date(budget.start_date) <= now &&
+                  new Date(budget.end_date) >= now
+                );
+                return (
+                  <div
+                    key={category.id}
+                    className="border rounded-lg p-4"
+                    style={{ borderLeftColor: category.color, borderLeftWidth: "4px" }}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="flex items-center">
+                          <span className="text-2xl mr-2">{category.icon}</span>
+                          <h3 className="font-bold">{category.name}</h3>
+                        </div>
+                        <p className="text-gray-500 mt-1">
+                          Budget: {formatCurrency(currentBudget ? currentBudget.amount : 0)}
+                        </p>
                       </div>
-                      <p className="text-gray-500 mt-1">
-                        Budget: {formatCurrency(category.budget)}
-                      </p>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        className="btn btn-outline btn-sm"
-                        onClick={() => setEditingCategory(category)}
-                      >
-                        <FiEdit2 />
-                      </button>
-                      <button
-                        className="btn btn-outline btn-sm text-red-500"
-                        onClick={() => handleDeleteCategory(category.id)}
-                      >
-                        <FiTrash2 />
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          className="btn btn-outline btn-sm"
+                          onClick={() => setEditingCategory(category)}
+                        >
+                          <FiEdit2 />
+                        </button>
+                        <button
+                          className="btn btn-outline btn-sm text-red-500"
+                          onClick={() => handleDeleteCategory(category.id)}
+                        >
+                          <FiTrash2 />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>

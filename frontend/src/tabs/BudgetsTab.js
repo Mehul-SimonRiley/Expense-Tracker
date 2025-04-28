@@ -21,6 +21,7 @@ export default function BudgetsTab() {
 
   useEffect(() => {
     fetchBudgets()
+    fetchCategories()
   }, [])
 
   const fetchBudgets = async () => {
@@ -35,6 +36,16 @@ export default function BudgetsTab() {
       setBudgets([])
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchCategories = async () => {
+    try {
+      const data = await categoriesAPI.getAll();
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+      setCategories([]);
     }
   }
 

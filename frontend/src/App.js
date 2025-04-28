@@ -20,6 +20,7 @@ const App = () => {
     const [loading, setLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [activeTab, setActiveTab] = useState('dashboard');
+    const [user, setUser] = useState(null);
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -31,7 +32,8 @@ const App = () => {
                     return;
                 }
 
-                await auth.getCurrentUser();
+                const userData = await auth.getCurrentUser();
+                setUser(userData);
                 setIsAuthenticated(true);
             } catch (error) {
                 console.error('Auth check failed:', error);
@@ -44,6 +46,18 @@ const App = () => {
 
         checkAuth();
     }, []);
+
+    // Helper to get initials from name or email
+    const getInitials = (user) => {
+        if (!user) return '';
+        if (user.name) {
+            const names = user.name.trim().split(' ');
+            if (names.length === 1) return names[0][0].toUpperCase();
+            return (names[0][0] + names[names.length - 1][0]).toUpperCase();
+        }
+        if (user.email) return user.email[0].toUpperCase();
+        return '';
+    };
 
     if (loading) {
         return (
@@ -93,7 +107,7 @@ const App = () => {
         {
             value: 'settings',
             label: 'Settings',
-            content: <SettingsTab />,
+            content: <SettingsTab user={user} />,
             icon: <FiSettings />
         }
     ];
@@ -144,15 +158,17 @@ const App = () => {
                                         <span className="logo-text">Traxpense</span>
                                     </div>
                                     <div className="header-actions">
-                                        <div className="search-container">
-                                            <FiSearch className="search-icon" />
-                                            <input type="text" className="search-input" placeholder="Search..." />
-                                        </div>
                                         <button className="notification-button">
                                             <FiBell />
                                             <span className="notification-badge">3</span>
                                         </button>
-                                        <div className="avatar">JD</div>
+                                        <button
+                                            className="avatar w-10 h-10 !bg-black rounded-full flex items-center justify-center text-white text-lg font-bold focus:outline-none"
+                                            onClick={() => setActiveTab('settings')}
+                                            title="Profile Settings"
+                                        >
+                                            {getInitials(user)}
+                                        </button>
                                     </div>
                                 </header>
                                 <div className="dashboard-content">

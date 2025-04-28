@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { FiSave } from "react-icons/fi"
 import { settingsService } from "../services/api";
 
-export default function SettingsTab() {
+export default function SettingsTab({ user }) {
   const [activeSection, setActiveSection] = useState("profile")
 
   const [profileData, setProfileData] = useState({
@@ -24,6 +24,18 @@ export default function SettingsTab() {
     email_notifications: true,
     push_notifications: true,
   });
+
+  // Helper to get initials from name or email
+  const getInitials = (user) => {
+    if (!user) return '';
+    if (user.name) {
+      const names = user.name.trim().split(' ');
+      if (names.length === 1) return names[0][0].toUpperCase();
+      return (names[0][0] + names[names.length - 1][0]).toUpperCase();
+    }
+    if (user.email) return user.email[0].toUpperCase();
+    return '';
+  };
 
   const handleSaveProfile = async () => {
     try {
@@ -148,9 +160,8 @@ export default function SettingsTab() {
                     <label className="form-label">Profile Picture</label>
                     <div className="flex items-center gap-4">
                       <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center text-white text-xl font-bold">
-                        SP
+                        {getInitials(user)}
                       </div>
-                      <button className="btn btn-outline">Change Picture</button>
                     </div>
                   </div>
                 </div>

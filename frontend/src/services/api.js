@@ -219,17 +219,41 @@ export const budgetsAPI = {
 // Dashboard API
 export const dashboardAPI = {
   getSummary: async () => {
-    return api.get("/dashboard/summary")
+    try {
+      const response = await api.get('/dashboard/summary')
+      return response.data
+    } catch (error) {
+      console.error('Error fetching dashboard summary:', error)
+      throw error
+    }
   },
-  getRecentTransactions: async (limit = 5) => {
-    return api.get(`/dashboard/recent-transactions?limit=${limit}`)
-  },
-  getBudgetStatus: async () => {
-    return api.get("/dashboard/budget-status")
+  getRecentTransactions: async () => {
+    try {
+      const response = await api.get('/dashboard/recent-transactions')
+      return response.data || []
+    } catch (error) {
+      console.error('Error fetching recent transactions:', error)
+      return []
+    }
   },
   getCategoryBreakdown: async () => {
-    return api.get("/dashboard/category-breakdown")
+    try {
+      const response = await api.get('/dashboard/category-breakdown')
+      return response.data || []
+    } catch (error) {
+      console.error('Error fetching category breakdown:', error)
+      return []
+    }
   },
+  getBudgetStatus: async () => {
+    try {
+      const response = await api.get('/dashboard/budget-status')
+      return response.data || []
+    } catch (error) {
+      console.error('Error fetching budget status:', error)
+      return []
+    }
+  }
 }
 
 // Reports API

@@ -5,6 +5,7 @@ import { FiEdit2, FiPlus, FiX } from "react-icons/fi"
 import { budgetsAPI, categoriesAPI } from "../services/api"
 import { formatCurrency } from '../utils/format'
 import LoadingSpinner from '../components/LoadingSpinner'
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function BudgetsTab() {
   const [timeframe, setTimeframe] = useState("month")
@@ -114,9 +115,13 @@ export default function BudgetsTab() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex justify-center items-center h-64"
+      >
         <LoadingSpinner text="Loading budgets..." />
-      </div>
+      </motion.div>
     )
   }
 
@@ -134,7 +139,12 @@ export default function BudgetsTab() {
   const remaining = totalBudget - totalSpent
 
   return (
-    <div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="p-4"
+    >
       <div className="flex justify-between items-center mb-6">
         <h1 className="page-title">Budget Planner</h1>
         <div className="flex gap-2">
@@ -155,155 +165,45 @@ export default function BudgetsTab() {
         </div>
       </div>
 
-      {/* Add Budget Form */}
-      {showAddForm && (
-        <div className="card mb-6">
-          <div className="card-header">
-            <h2 className="card-title">Add New Budget</h2>
-            <button className="btn btn-outline btn-sm" onClick={() => setShowAddForm(false)}>
-              <FiX />
-            </button>
-          </div>
-          <div className="card-content">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="form-group">
-                <label className="form-label">Category</label>
-                <select
-                  className="form-select"
-                  value={newBudget.category_id}
-                  onChange={(e) => setNewBudget({ ...newBudget, category_id: e.target.value })}
-                >
-                  <option value="">Select Category</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Amount</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  placeholder="0.00"
-                  value={newBudget.amount}
-                  onChange={(e) => setNewBudget({ ...newBudget, amount: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Month</label>
-                <input
-                  type="month"
-                  className="form-input"
-                  value={newBudget.month}
-                  onChange={(e) => setNewBudget({ ...newBudget, month: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
-          <div className="card-footer">
-            <div className="flex justify-end gap-2">
-              <button className="btn btn-outline" onClick={() => setShowAddForm(false)}>
-                Cancel
-              </button>
-              <button className="btn btn-primary" onClick={handleAddBudget}>
-                Save Budget
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Budget Form */}
-      {editingBudget && (
-        <div className="card mb-6">
-          <div className="card-header">
-            <h2 className="card-title">Edit Budget</h2>
-            <button className="btn btn-outline btn-sm" onClick={() => setEditingBudget(null)}>
-              <FiX />
-            </button>
-          </div>
-          <div className="card-content">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="form-group">
-                <label className="form-label">Category</label>
-                <select
-                  className="form-select"
-                  value={editingBudget.category_id}
-                  onChange={(e) => setEditingBudget({ ...editingBudget, category_id: e.target.value })}
-                >
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Amount</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  value={editingBudget.amount}
-                  onChange={(e) => setEditingBudget({ ...editingBudget, amount: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Month</label>
-                <input
-                  type="month"
-                  className="form-input"
-                  value={editingBudget.month}
-                  onChange={(e) => setEditingBudget({ ...editingBudget, month: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
-          <div className="card-footer">
-            <div className="flex justify-end gap-2">
-              <button className="btn btn-outline" onClick={() => setEditingBudget(null)}>
-                Cancel
-              </button>
-              <button className="btn btn-primary" onClick={handleEditBudget}>
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Budget Summary */}
-      <div className="card mb-6">
-        <h2 className="text-2xl font-bold mb-2">Budget Overview</h2>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-gray-500">Total Budget</h3>
-            <p className="text-2xl font-bold">{formatCurrency(totalBudget)}</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-gray-500">Total Spent</h3>
-            <p className="text-2xl font-bold">{formatCurrency(totalSpent)}</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-gray-500">Remaining</h3>
-            <p className="text-2xl font-bold">{formatCurrency(remaining)}</p>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="bg-white rounded-lg shadow mb-6"
+      >
+        <div className="p-4 border-b">
+          <h2 className="text-xl font-bold">Budget Summary</h2>
+        </div>
+        <div className="p-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-white p-4 rounded-lg shadow">
+              <h3 className="text-gray-500">Total Budget</h3>
+              <p className="text-2xl font-bold">{formatCurrency(totalBudget)}</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow">
+              <h3 className="text-gray-500">Total Spent</h3>
+              <p className="text-2xl font-bold">{formatCurrency(totalSpent)}</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow">
+              <h3 className="text-gray-500">Remaining</h3>
+              <p className="text-2xl font-bold">{formatCurrency(remaining)}</p>
+            </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Budget Progress */}
-      <div className="card mb-6">
-        <div className="card-header">
-          <h2 className="card-title">Overall Budget Progress</h2>
-          <div className="text-sm font-medium">
-            {Math.round(
-              (totalSpent / totalBudget) * 100 || 0
-            )}
-            % Used
-          </div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="bg-white rounded-lg shadow mb-6"
+      >
+        <div className="p-4 border-b">
+          <h2 className="text-xl font-bold">Budget Progress</h2>
         </div>
-        <div className="card-content">
+        <div className="p-4">
           <div
             style={{
               height: "24px",
@@ -330,84 +230,217 @@ export default function BudgetsTab() {
             <div>{formatCurrency(totalBudget)}</div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Category Budgets */}
-      <div className="card">
-        <div className="card-header">
-          <h2 className="card-title">Category Budgets</h2>
+      {/* Budget Categories */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+        className="bg-white rounded-lg shadow mb-6"
+      >
+        <div className="p-4 border-b">
+          <h2 className="text-xl font-bold">Budget Categories</h2>
         </div>
-        <div className="card-content" style={{ padding: 0 }}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Category</th>
-                <th>Budget</th>
-                <th>Spent</th>
-                <th>Remaining</th>
-                <th>Progress</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {budgets.map((budget) => (
-                <tr key={budget.id}>
-                  <td>{budget.category_name}</td>
-                  <td>{formatCurrency(budget.amount)}</td>
-                  <td>{formatCurrency(budget.spent)}</td>
-                  <td className={budget.amount - budget.spent < 0 ? "text-expense" : "text-income"}>
-                    {formatCurrency(budget.amount - budget.spent)}
-                  </td>
-                  <td>
+        <div className="p-4">
+          <AnimatePresence>
+            {budgets.map((budget, index) => (
+              <motion.div
+                key={budget.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                className="mb-4"
+              >
+                <div className="flex justify-between items-center">
+                  <span>{budget.category_name}</span>
+                  <div className="flex gap-2">
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={() => setEditingBudget(budget)}
+                    >
+                      <FiEdit2 size={14} />
+                      Edit
+                    </button>
+                    <button
+                      className="btn btn-outline btn-sm text-red-500"
+                      onClick={() => handleDeleteBudget(budget.id)}
+                    >
+                      <FiX size={14} />
+                      Delete
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "8px",
+                      backgroundColor: "var(--border-color)",
+                      borderRadius: "9999px",
+                      overflow: "hidden",
+                    }}
+                  >
                     <div
                       style={{
-                        width: "100%",
-                        height: "8px",
-                        backgroundColor: "var(--border-color)",
+                        width: `${Math.min(
+                          ((budget.spent) / budget.amount) * 100 || 0,
+                          100
+                        )}%`,
+                        height: "100%",
+                        backgroundColor:
+                          budget.spent > budget.amount
+                            ? "var(--expense-color)"
+                            : "var(--primary-color)",
                         borderRadius: "9999px",
-                        overflow: "hidden",
                       }}
-                    >
-                      <div
-                        style={{
-                          width: `${Math.min(
-                            ((budget.spent) / budget.amount) * 100 || 0,
-                            100
-                          )}%`,
-                          height: "100%",
-                          backgroundColor:
-                            budget.spent > budget.amount
-                              ? "var(--expense-color)"
-                              : "var(--primary-color)",
-                          borderRadius: "9999px",
-                        }}
-                      ></div>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="flex gap-2">
-                      <button
-                        className="btn btn-outline btn-sm"
-                        onClick={() => setEditingBudget(budget)}
-                      >
-                        <FiEdit2 size={14} />
-                        Edit
-                      </button>
-                      <button
-                        className="btn btn-outline btn-sm text-red-500"
-                        onClick={() => handleDeleteBudget(budget.id)}
-                      >
-                        <FiX size={14} />
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    ></div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
-      </div>
-    </div>
+      </motion.div>
+
+      {/* Add Budget Form */}
+      <AnimatePresence>
+        {showAddForm && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white rounded-lg shadow mb-6"
+          >
+            <div className="card mb-6">
+              <div className="card-header">
+                <h2 className="card-title">Add New Budget</h2>
+                <button className="btn btn-outline btn-sm" onClick={() => setShowAddForm(false)}>
+                  <FiX />
+                </button>
+              </div>
+              <div className="card-content">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="form-group">
+                    <label className="form-label">Category</label>
+                    <select
+                      className="form-select"
+                      value={newBudget.category_id}
+                      onChange={(e) => setNewBudget({ ...newBudget, category_id: e.target.value })}
+                    >
+                      <option value="">Select Category</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Amount</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      placeholder="0.00"
+                      value={newBudget.amount}
+                      onChange={(e) => setNewBudget({ ...newBudget, amount: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Month</label>
+                    <input
+                      type="month"
+                      className="form-input"
+                      value={newBudget.month}
+                      onChange={(e) => setNewBudget({ ...newBudget, month: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="card-footer">
+                <div className="flex justify-end gap-2">
+                  <button className="btn btn-outline" onClick={() => setShowAddForm(false)}>
+                    Cancel
+                  </button>
+                  <button className="btn btn-primary" onClick={handleAddBudget}>
+                    Save Budget
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Budget Form */}
+      <AnimatePresence>
+        {editingBudget && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white rounded-lg shadow mb-6"
+          >
+            <div className="card mb-6">
+              <div className="card-header">
+                <h2 className="card-title">Edit Budget</h2>
+                <button className="btn btn-outline btn-sm" onClick={() => setEditingBudget(null)}>
+                  <FiX />
+                </button>
+              </div>
+              <div className="card-content">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="form-group">
+                    <label className="form-label">Category</label>
+                    <select
+                      className="form-select"
+                      value={editingBudget.category_id}
+                      onChange={(e) => setEditingBudget({ ...editingBudget, category_id: e.target.value })}
+                    >
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Amount</label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      value={editingBudget.amount}
+                      onChange={(e) => setEditingBudget({ ...editingBudget, amount: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Month</label>
+                    <input
+                      type="month"
+                      className="form-input"
+                      value={editingBudget.month}
+                      onChange={(e) => setEditingBudget({ ...editingBudget, month: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="card-footer">
+                <div className="flex justify-end gap-2">
+                  <button className="btn btn-outline" onClick={() => setEditingBudget(null)}>
+                    Cancel
+                  </button>
+                  <button className="btn btn-primary" onClick={handleEditBudget}>
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }

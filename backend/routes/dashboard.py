@@ -20,10 +20,30 @@ def get_summary():
     today = datetime.now().date()
     month_start = today.replace(day=1)
     next_month = month_start.replace(day=28) + timedelta(days=4)
-    month_end = (next_month - timedelta(days=next_month.day)).date()
+    month_end = next_month - timedelta(days=next_month.day)
     
-    # Calculate total income and expenses for current month
-    monthly_totals = db.session.query(
+    # Get previous month's dates for trend calculation
+    prev_month_end = month_start - timedelta(days=1)
+    prev_month_start = prev_month_end.replace(day=1)
+    
+    # Calculate total income and expenses (all time)
+    all_time_totals = db.session.query(
+        Transaction.type,
+        func.sum(Transaction.amount).label('total')
+    ).filter(
+        Transaction.user_id == current_user_id
+    ).group_by(Transaction.type).all()
+    
+    total_income = 0.0
+    total_expenses = 0.0
+    for type_, total in all_time_totals:
+        if type_ == 'income':
+            total_income = round(total, 2)
+        elif type_ == 'expense':
+            total_expenses = round(total, 2)
+    
+    # Calculate current month's totals
+    current_month_totals = db.session.query(
         Transaction.type,
         func.sum(Transaction.amount).label('total')
     ).filter(
@@ -32,62 +52,52 @@ def get_summary():
         Transaction.date <= month_end
     ).group_by(Transaction.type).all()
     
-    # Calculate budget status
-    budgets = Budget.query.filter(
-        Budget.user_id == current_user_id,
-        Budget.start_date <= month_end,
-        Budget.end_date >= month_start
-    ).all()
+    current_month_income = 0.0
+    current_month_expenses = 0.0
+    for type_, total in current_month_totals:
+        if type_ == 'income':
+            current_month_income = round(total, 2)
+        elif type_ == 'expense':
+            current_month_expenses = round(total, 2)
     
-    budget_status = []
-    for budget in budgets:
-        spent = db.session.query(func.sum(Transaction.amount)).filter(
-            Transaction.user_id == current_user_id,
-            Transaction.category_id == budget.category_id,
-            Transaction.type == 'expense',
-            Transaction.date >= budget.start_date,
-            Transaction.date <= budget.end_date
-        ).scalar() or 0.0
-        
-        budget_status.append({
-            'category_id': budget.category_id,
-            'category_name': budget.category.name,
-            'budget_amount': budget.amount,
-            'spent': round(spent, 2),
-            'remaining': round(budget.amount - spent, 2),
-            'percentage': round((spent / budget.amount) * 100, 2) if budget.amount > 0 else 0
-        })
-    
-    # Calculate category breakdown
-    category_breakdown = db.session.query(
-        Category.name,
+    # Calculate previous month's totals for trend
+    prev_month_totals = db.session.query(
+        Transaction.type,
         func.sum(Transaction.amount).label('total')
-    ).join(
-        Transaction,
-        Category.id == Transaction.category_id
     ).filter(
         Transaction.user_id == current_user_id,
-        Transaction.type == 'expense',
-        Transaction.date >= month_start,
-        Transaction.date <= month_end
-    ).group_by(Category.name).all()
+        Transaction.date >= prev_month_start,
+        Transaction.date <= prev_month_end
+    ).group_by(Transaction.type).all()
     
-    # Format the response
+    prev_month_income = 0.0
+    prev_month_expenses = 0.0
+    for type_, total in prev_month_totals:
+        if type_ == 'income':
+            prev_month_income = round(total, 2)
+        elif type_ == 'expense':
+            prev_month_expenses = round(total, 2)
+    
+    # Calculate trends (percentage change from previous month)
+    expense_trend = round(((current_month_expenses - prev_month_expenses) / prev_month_expenses * 100) if prev_month_expenses > 0 else 0, 2)
+    income_trend = round(((current_month_income - prev_month_income) / prev_month_income * 100) if prev_month_income > 0 else 0, 2)
+    
+    # Calculate current balance and savings
+    current_balance = round(total_income - total_expenses, 2)
+    savings = current_balance
+    savings_rate = round((savings / total_income * 100) if total_income > 0 else 0, 2)
+    balance_trend = round(((current_month_income - current_month_expenses) - (prev_month_income - prev_month_expenses)) / abs(prev_month_income - prev_month_expenses) * 100 if (prev_month_income - prev_month_expenses) != 0 else 0, 2)
+    
     summary = {
-        'monthly_totals': {
-            'income': 0.0,
-            'expense': 0.0
-        },
-        'budget_status': budget_status,
-        'category_breakdown': [
-            {'name': name, 'total': round(total, 2)}
-            for name, total in category_breakdown
-        ]
+        'total_expenses': total_expenses,
+        'total_income': total_income,
+        'current_balance': current_balance,
+        'savings': savings,
+        'expense_trend': expense_trend,
+        'income_trend': income_trend,
+        'balance_trend': balance_trend,
+        'savings_rate': savings_rate
     }
-    
-    # Update monthly totals
-    for type_, total in monthly_totals:
-        summary['monthly_totals'][type_] = round(total, 2)
     
     return jsonify(summary)
 

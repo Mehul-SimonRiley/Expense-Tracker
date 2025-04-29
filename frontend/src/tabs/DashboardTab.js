@@ -1,11 +1,12 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { FiCreditCard, FiDollarSign, FiDownload, FiPieChart, FiPlus } from "react-icons/fi"
-import { dashboardAPI, transactionsAPI, categoriesAPI, budgetsAPI } from "../services/api"
+import { FiCreditCard, FiDollarSign, FiDownload, FiPieChart, FiPlus, FiTrendingUp, FiTrendingDown } from "react-icons/fi"
 import { formatCurrency, formatDate } from '../utils/format'
 import { LineChart, BarChart, PieChart, createExpenseBreakdownData, createTrendData, createBudgetVsActualData } from '../components/Charts'
 import LoadingSpinner from '../components/LoadingSpinner'
+import { motion, AnimatePresence } from "framer-motion"
+import dashboardService from '../services/dashboardService'
 
 export default function DashboardTab({ onError }) {
   const [timeframe, setTimeframe] = useState("month")
@@ -31,92 +32,9 @@ export default function DashboardTab({ onError }) {
     const fetchDashboardData = async () => {
       setIsLoading(true)
       try {
-        // Try to fetch summary data
-        let summary
-        try {
-          summary = await dashboardAPI.getSummary()
-        } catch (err) {
-          console.warn("Could not fetch dashboard summary, using fallback method", err)
-          // Fallback: Calculate summary from transactions
-          const transactions = await transactionsAPI.getAll()
-
-          const totalIncome = transactions
-            .filter((t) => t.type === "income")
-            .reduce((sum, t) => sum + Number.parseFloat(t.amount), 0)
-
-          const totalExpenses = transactions
-            .filter((t) => t.type === "expense")
-            .reduce((sum, t) => sum + Number.parseFloat(t.amount), 0)
-
-          summary = {
-            totalIncome,
-            totalExpenses,
-            currentBalance: totalIncome - totalExpenses,
-            savings: totalIncome * 0.1, // Estimate savings as 10% of income
-            expenseTrend: "+12.3% from last month",
-            incomeTrend: "Same as last month",
-            balanceTrend: "-8.4% from last month",
-            savingsRate: "10%",
-          }
-        }
-
-        // Try to fetch budget status
-        let budgetStatus
-        try {
-          budgetStatus = await budgetsAPI.getAll()
-        } catch (err) {
-          console.warn("Could not fetch budget status, using empty array", err)
-          budgetStatus = []
-        }
-        console.log('Budget Status for chart:', budgetStatus);
-
-        // Get recent transactions
-        const recentTransactions = await transactionsAPI.getAll({ limit: 5 })
-
-        // Try to fetch category breakdown
-        let categoryBreakdown
-        try {
-          categoryBreakdown = await categoriesAPI.getExpenseBreakdown()
-        } catch (err) {
-          console.warn("Could not fetch category breakdown, using empty array", err)
-          categoryBreakdown = []
-        }
-
-        // Fetch all transactions for trends
-        let allTransactions = [];
-        try {
-          allTransactions = await transactionsAPI.getAll();
-        } catch (err) {
-          console.warn('Could not fetch all transactions for trends', err);
-          allTransactions = [];
-        }
-        // Calculate monthly expense trends for the last 12 months
-        const trendsMap = {};
-        allTransactions.forEach((t) => {
-          if (t.type === 'expense') {
-            const date = new Date(t.date);
-            const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            trendsMap[month] = (trendsMap[month] || 0) + Number.parseFloat(t.amount);
-          }
-        });
-        // Get last 12 months
-        const now = new Date();
-        const months = [];
-        for (let i = 11; i >= 0; i--) {
-          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-          months.push(m);
-        }
-        const expenseTrends = months.map((m) => ({ month: m, total: trendsMap[m] || 0 }));
-
-        setDashboardData({
-          summary,
-          budgetStatus: Array.isArray(budgetStatus) ? budgetStatus : [],
-          recentTransactions: Array.isArray(recentTransactions) ? recentTransactions : [],
-          categoryBreakdown: Array.isArray(categoryBreakdown) ? categoryBreakdown : [],
-          expenseTrends,
-        })
-
+        const data = await dashboardService.getDashboardData()
+        console.log('Dashboard summary:', data.summary) // Debug log for summary
+        setDashboardData(data)
         if (onError) onError(null)
       } catch (err) {
         console.error("Error fetching dashboard data:", err)
@@ -131,14 +49,23 @@ export default function DashboardTab({ onError }) {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <LoadingSpinner text="Loading dashboard data..." />
-      </div>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex justify-center items-center h-64"
+      >
+        <LoadingSpinner text="Loading dashboard..." />
+      </motion.div>
     )
   }
 
   return (
-    <div className="dashboard-grid">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="p-4"
+    >
       <div className="flex justify-between items-center mb-6">
         <h1 className="page-title">Expense Dashboard</h1>
         <div className="flex gap-2">
@@ -158,174 +85,208 @@ export default function DashboardTab({ onError }) {
         </div>
       </div>
 
-      {/* Financial Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-        <div className="card">
+      {/* Financial Overview Cards - Horizontal Layout */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="grid grid-cols-4 gap-4 mb-6"
+      >
+        <motion.div 
+          whileHover={{ scale: 1.02 }}
+          className="card"
+        >
           <div className="card-content">
-            <div className="text-sm text-muted mb-4">Total Expenses</div>
-            <div className="text-2xl font-bold text-expense">{formatCurrency(dashboardData.summary.totalExpenses)}</div>
-            <p className="text-xs text-muted">{dashboardData.summary.expenseTrend || "No trend data available"}</p>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-content">
-            <div className="text-sm text-muted mb-4">Total Income</div>
-            <div className="text-2xl font-bold text-income">{formatCurrency(dashboardData.summary.totalIncome)}</div>
-            <p className="text-xs text-muted">{dashboardData.summary.incomeTrend || "No trend data available"}</p>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-content">
-            <div className="text-sm text-muted mb-4">Current Balance</div>
-            <div className="text-2xl font-bold">{formatCurrency(dashboardData.summary.currentBalance)}</div>
-            <p className="text-xs text-muted">{dashboardData.summary.balanceTrend || "No trend data available"}</p>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-content">
-            <div className="text-sm text-muted mb-4">Savings</div>
-            <div className="text-2xl font-bold" style={{ color: "var(--savings-color)" }}>
-              {formatCurrency(dashboardData.summary.savings)}
-            </div>
-            <p className="text-xs text-muted">{dashboardData.summary.savingsRate || "0%"} of income</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Expense Breakdown and Budget */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="card lg:col-span-2">
-          <div className="card-header">
-            <h2 className="card-title">Expense Breakdown</h2>
-          </div>
-          <div className="card-content" style={{ height: '300px' }}>
-            {dashboardData.categoryBreakdown.length > 0 ? (
-              <PieChart
-                data={createExpenseBreakdownData(dashboardData.categoryBreakdown)}
-                title="Expense Distribution"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <FiPieChart style={{ width: "40px", height: "40px", color: "var(--text-muted)" }} />
-                <p className="ml-2">No expense data available</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Total Balance</p>
+                <h3 className="text-2xl font-bold">{formatCurrency(dashboardData.summary.currentBalance)}</h3>
+                <p className="text-xs text-gray-500">{dashboardData.summary.balanceTrend}</p>
               </div>
-            )}
+              <FiDollarSign className="text-2xl text-green-500" />
+            </div>
           </div>
-        </div>
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">Budget Status</h2>
+        </motion.div>
+
+        <motion.div 
+          whileHover={{ scale: 1.02 }}
+          className="card"
+        >
+          <div className="card-content">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Monthly Income</p>
+                <h3 className="text-2xl font-bold text-green-500">{formatCurrency(dashboardData.summary.totalIncome)}</h3>
+                <p className="text-xs text-gray-500">{dashboardData.summary.incomeTrend}</p>
+              </div>
+              <FiTrendingUp className="text-2xl text-green-500" />
+            </div>
           </div>
-          <div className="card-content" style={{ height: '300px' }}>
-            {dashboardData.budgetStatus.length > 0 ? (
-              (() => {
-                const mappedBudgets = dashboardData.budgetStatus.map(b => ({
-                  category: b.category_name || b.category,
-                  limit: b.amount,
-                  spent: b.spent ?? b.current_spending ?? 0,
-                }));
-                return (
+        </motion.div>
+
+        <motion.div 
+          whileHover={{ scale: 1.02 }}
+          className="card"
+        >
+          <div className="card-content">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Monthly Expenses</p>
+                <h3 className="text-2xl font-bold text-red-500">{formatCurrency(dashboardData.summary.totalExpenses)}</h3>
+                <p className="text-xs text-gray-500">{dashboardData.summary.expenseTrend}</p>
+              </div>
+              <FiTrendingDown className="text-2xl text-red-500" />
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div 
+          whileHover={{ scale: 1.02 }}
+          className="card"
+        >
+          <div className="card-content">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Monthly Savings</p>
+                <h3 className="text-2xl font-bold text-blue-500">{formatCurrency(dashboardData.summary.savings)}</h3>
+                <p className="text-xs text-gray-500">Rate: {dashboardData.summary.savingsRate}</p>
+              </div>
+              <FiCreditCard className="text-2xl text-blue-500" />
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+
+      {/* Main Content Area */}
+      <div className="grid grid-cols-3 gap-6">
+        {/* Left Column - Charts */}
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="col-span-2"
+        >
+          <div className="card mb-6">
+            <div className="card-content">
+              <h2 className="card-title">Expense Distribution</h2>
+              <div className="h-64">
+                {dashboardData.categoryBreakdown.length > 0 ? (
+                  <PieChart
+                    data={createExpenseBreakdownData(dashboardData.categoryBreakdown)}
+                    title="Expense Distribution"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-gray-500">No expense data available</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-content">
+              <h2 className="card-title">Income vs Expenses</h2>
+              <div className="h-64">
+                {dashboardData.budgetStatus.length > 0 ? (
                   <BarChart
-                    data={createBudgetVsActualData(mappedBudgets)}
+                    data={createBudgetVsActualData(dashboardData.budgetStatus)}
                     title="Budget vs Actual"
                   />
-                );
-              })()
-            ) : (
-              <div className="text-center py-4 text-muted">
-                No budget data available. Set up budgets in the Budget tab.
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Transactions and Category Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="card lg:col-span-2">
-          <div className="card-header">
-            <h2 className="card-title">Recent Transactions</h2>
-            <button
-              className="btn btn-outline btn-sm"
-              onClick={() => document.querySelector('button[data-tab="transactions"]')?.click()}
-            >
-              View All
-            </button>
-          </div>
-          <div className="card-content">
-            {dashboardData.recentTransactions.length === 0 ? (
-              <div className="text-center py-4 text-muted">No transactions available. Add your first transaction.</div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                {dashboardData.recentTransactions.map((transaction) => (
-                  <div key={transaction.id} className="flex items-center gap-4">
-                    <div
-                      style={{
-                        borderRadius: "9999px",
-                        backgroundColor:
-                          transaction.type === "expense" ? "rgba(239, 68, 68, 0.1)" : "rgba(16, 185, 129, 0.1)",
-                        padding: "0.5rem",
-                      }}
-                    >
-                      {transaction.type === "expense" ? (
-                        <FiCreditCard style={{ width: "1.25rem", height: "1.25rem", color: "var(--expense-color)" }} />
-                      ) : (
-                        <FiDollarSign style={{ width: "1.25rem", height: "1.25rem", color: "var(--income-color)" }} />
-                      )}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <p className="text-sm font-medium">{transaction.description}</p>
-                      <p className="text-xs text-muted">
-                        {formatDate(transaction.date)} • {transaction.category}
-                      </p>
-                    </div>
-                    <div
-                      className={
-                        transaction.type === "expense" ? "text-expense font-medium" : "text-income font-medium"
-                      }
-                    >
-                      {transaction.type === "expense" ? "-" : "+"}
-                      {formatCurrency(Math.abs(transaction.amount))}
-                    </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-gray-500">No budget data available</p>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="card-footer">
-            <button
-              className="btn btn-primary"
-              style={{ width: "100%" }}
-              onClick={() => {
-                document.querySelector('button[data-tab="transactions"]')?.click()
-              }}
-            >
-              <FiPlus style={{ width: "1rem", height: "1rem" }} />
-              Add New Transaction
-            </button>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">Expense Trends</h2>
-          </div>
-          <div className="card-content" style={{ height: '300px' }}>
-            {dashboardData.expenseTrends?.length > 0 ? (
-              <LineChart
-                data={createTrendData(
-                  dashboardData.expenseTrends.map(e => ({ date: e.month, amount: e.total })),
-                  "Expense Trend"
                 )}
-                title="Monthly Expense Trend"
-              />
-            ) : (
-              <div className="text-center py-4 text-muted">
-                No trend data available
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        </motion.div>
+
+        {/* Right Column - Recent Transactions and Expense Trends */}
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="space-y-6"
+        >
+          {/* Recent Transactions */}
+          <div className="card">
+            <div className="card-content">
+              <h2 className="card-title">Recent Transactions</h2>
+              <div className="space-y-4">
+                {dashboardData.recentTransactions.length === 0 ? (
+                  <motion.p 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-gray-500"
+                  >
+                    No recent transactions found.
+                  </motion.p>
+                ) : (
+                  <AnimatePresence>
+                    {dashboardData.recentTransactions.map((transaction, index) => (
+                      <motion.div
+                        key={transaction.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg"
+                      >
+                        <div className="flex items-center">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              transaction.type === "income" ? "bg-green-100" : "bg-red-100"
+                            }`}
+                          >
+                            {transaction.type === "income" ? (
+                              <FiTrendingUp className="text-green-500" />
+                            ) : (
+                              <FiTrendingDown className="text-red-500" />
+                            )}
+                          </div>
+                          <div className="ml-3">
+                            <p className="text-sm font-medium">{transaction.description}</p>
+                            <p className="text-xs text-gray-500">{formatDate(transaction.date)}</p>
+                          </div>
+                        </div>
+                        <span className={`text-sm font-medium ${
+                          transaction.type === "income" ? "text-green-500" : "text-red-500"
+                        }`}>
+                          {transaction.type === "income" ? "+" : "-"}₹{formatCurrency(Math.abs(transaction.amount))}
+                        </span>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Expense Trends */}
+          <div className="card">
+            <div className="card-content">
+              <h2 className="card-title">Expense Trends</h2>
+              <div className="h-48">
+                {dashboardData.expenseTrends?.length > 0 ? (
+                  <LineChart
+                    data={createTrendData(
+                      dashboardData.expenseTrends.map(e => ({ date: e.month, amount: e.total })),
+                      "Expense Trend"
+                    )}
+                    title="Monthly Expense Trend"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-gray-500">No trend data available</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   )
 }

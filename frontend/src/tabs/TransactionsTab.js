@@ -5,6 +5,7 @@ import { FiChevronDown, FiEdit2, FiFilter, FiPlus, FiTrash2, FiX } from "react-i
 import { transactionsAPI, categoriesAPI } from "../services/api"
 import { formatCurrency, formatDate } from "../utils/format"
 import LoadingSpinner from '../components/LoadingSpinner'
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function TransactionsTab({ onError }) {
   const [filterOpen, setFilterOpen] = useState(false)
@@ -191,9 +192,13 @@ export default function TransactionsTab({ onError }) {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex justify-center items-center h-64"
+      >
         <LoadingSpinner text="Loading transactions..." />
-      </div>
+      </motion.div>
     )
   }
 
@@ -207,27 +212,39 @@ export default function TransactionsTab({ onError }) {
   }
 
   return (
-    <div className="p-4">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="p-4"
+    >
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-gray-500">Total Income</h3>
-          <p className="text-2xl font-bold text-green-600">{formatCurrency(summary.totalIncome)}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-gray-500">Total Expenses</h3>
-          <p className="text-2xl font-bold text-red-600">{formatCurrency(summary.totalExpenses)}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-gray-500">Net Flow</h3>
-          <p className={`text-2xl font-bold ${summary.netFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {formatCurrency(summary.netFlow)}
-          </p>
-        </div>
+        {[
+          { title: "Total Income", value: summary.totalIncome, color: "text-green-600" },
+          { title: "Total Expenses", value: summary.totalExpenses, color: "text-red-600" },
+          { title: "Net Flow", value: summary.netFlow, color: summary.netFlow >= 0 ? "text-green-600" : "text-red-600" }
+        ].map((card, index) => (
+          <motion.div
+            key={card.title}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: index * 0.1 }}
+            className="bg-white p-4 rounded-lg shadow"
+          >
+            <h3 className="text-gray-500">{card.title}</h3>
+            <p className={`text-2xl font-bold ${card.color}`}>{formatCurrency(card.value)}</p>
+          </motion.div>
+        ))}
       </div>
 
       {/* Filters and Add Button */}
-      <div className="flex justify-between items-center mb-6">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+        className="flex justify-between items-center mb-6"
+      >
         <div className="flex items-center space-x-2">
           <button
             className="btn btn-outline"
@@ -326,286 +343,319 @@ export default function TransactionsTab({ onError }) {
           <FiPlus className="mr-2" />
           Add Transaction
         </button>
-      </div>
+      </motion.div>
 
       {/* Add Transaction Form */}
-      {showAddForm && (
-        <div className="bg-white p-4 rounded-lg shadow mb-6">
-          <h3 className="text-lg font-semibold mb-4">Add New Transaction</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
-              </label>
-              <input
-                type="text"
-                className="form-input w-full"
-                value={newTransaction.description}
-                onChange={(e) =>
-                  setNewTransaction({ ...newTransaction, description: e.target.value })
-                }
-                placeholder="Transaction description"
-              />
+      <AnimatePresence>
+        {showAddForm && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white p-4 rounded-lg shadow mb-6"
+          >
+            <h3 className="text-lg font-semibold mb-4">Add New Transaction</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <input
+                  type="text"
+                  className="form-input w-full"
+                  value={newTransaction.description}
+                  onChange={(e) =>
+                    setNewTransaction({ ...newTransaction, description: e.target.value })
+                  }
+                  placeholder="Transaction description"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Amount
+                </label>
+                <input
+                  type="number"
+                  className="form-input w-full"
+                  value={newTransaction.amount}
+                  onChange={(e) =>
+                    setNewTransaction({ ...newTransaction, amount: e.target.value })
+                  }
+                  placeholder="Amount"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  className="form-input w-full"
+                  value={newTransaction.date}
+                  onChange={(e) =>
+                    setNewTransaction({ ...newTransaction, date: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Category
+                </label>
+                <select
+                  className="form-select w-full"
+                  value={newTransaction.category_id}
+                  onChange={(e) =>
+                    setNewTransaction({ ...newTransaction, category_id: e.target.value })
+                  }
+                >
+                  <option value="">Select Category</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Type
+                </label>
+                <select
+                  className="form-select w-full"
+                  value={newTransaction.type}
+                  onChange={(e) =>
+                    setNewTransaction({ ...newTransaction, type: e.target.value })
+                  }
+                >
+                  <option value="expense">Expense</option>
+                  <option value="income">Income</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  className="form-input w-full"
+                  value={newTransaction.notes}
+                  onChange={(e) =>
+                    setNewTransaction({ ...newTransaction, notes: e.target.value })
+                  }
+                  placeholder="Additional notes"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Amount
-              </label>
-              <input
-                type="number"
-                className="form-input w-full"
-                value={newTransaction.amount}
-                onChange={(e) =>
-                  setNewTransaction({ ...newTransaction, amount: e.target.value })
-                }
-                placeholder="Amount"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date
-              </label>
-              <input
-                type="date"
-                className="form-input w-full"
-                value={newTransaction.date}
-                onChange={(e) =>
-                  setNewTransaction({ ...newTransaction, date: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Category
-              </label>
-              <select
-                className="form-select w-full"
-                value={newTransaction.category_id}
-                onChange={(e) =>
-                  setNewTransaction({ ...newTransaction, category_id: e.target.value })
-                }
+            <div className="flex justify-end mt-4 space-x-2">
+              <button
+                className="btn btn-outline"
+                onClick={() => setShowAddForm(false)}
               >
-                <option value="">Select Category</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={handleAddTransaction}>
+                Save Transaction
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Type
-              </label>
-              <select
-                className="form-select w-full"
-                value={newTransaction.type}
-                onChange={(e) =>
-                  setNewTransaction({ ...newTransaction, type: e.target.value })
-                }
-              >
-                <option value="expense">Expense</option>
-                <option value="income">Income</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Notes
-              </label>
-              <textarea
-                className="form-input w-full"
-                value={newTransaction.notes}
-                onChange={(e) =>
-                  setNewTransaction({ ...newTransaction, notes: e.target.value })
-                }
-                placeholder="Additional notes"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end mt-4 space-x-2">
-            <button
-              className="btn btn-outline"
-              onClick={() => setShowAddForm(false)}
-            >
-              Cancel
-            </button>
-            <button className="btn btn-primary" onClick={handleAddTransaction}>
-              Save Transaction
-            </button>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Edit Transaction Form */}
-      {editingTransaction && (
-        <div className="bg-white p-4 rounded-lg shadow mb-6">
-          <h3 className="text-lg font-semibold mb-4">Edit Transaction</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
-              </label>
-              <input
-                type="text"
-                className="form-input w-full"
-                value={editingTransaction.description}
-                onChange={e =>
-                  setEditingTransaction({ ...editingTransaction, description: e.target.value })
-                }
-                placeholder="Transaction description"
-              />
+      <AnimatePresence>
+        {editingTransaction && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white p-4 rounded-lg shadow mb-6"
+          >
+            <h3 className="text-lg font-semibold mb-4">Edit Transaction</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <input
+                  type="text"
+                  className="form-input w-full"
+                  value={editingTransaction.description}
+                  onChange={e =>
+                    setEditingTransaction({ ...editingTransaction, description: e.target.value })
+                  }
+                  placeholder="Transaction description"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Amount
+                </label>
+                <input
+                  type="number"
+                  className="form-input w-full"
+                  value={editingTransaction.amount}
+                  onChange={e =>
+                    setEditingTransaction({ ...editingTransaction, amount: e.target.value })
+                  }
+                  placeholder="Amount"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  className="form-input w-full"
+                  value={editingTransaction.date}
+                  onChange={e =>
+                    setEditingTransaction({ ...editingTransaction, date: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Category
+                </label>
+                <select
+                  className="form-select w-full"
+                  value={editingTransaction.category}
+                  onChange={e =>
+                    setEditingTransaction({ ...editingTransaction, category: e.target.value })
+                  }
+                >
+                  <option value="">Select Category</option>
+                  {categories.map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Type
+                </label>
+                <select
+                  className="form-select w-full"
+                  value={editingTransaction.type}
+                  onChange={e =>
+                    setEditingTransaction({ ...editingTransaction, type: e.target.value })
+                  }
+                >
+                  <option value="expense">Expense</option>
+                  <option value="income">Income</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  className="form-input w-full"
+                  value={editingTransaction.notes || ""}
+                  onChange={e =>
+                    setEditingTransaction({ ...editingTransaction, notes: e.target.value })
+                  }
+                  placeholder="Additional notes"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Amount
-              </label>
-              <input
-                type="number"
-                className="form-input w-full"
-                value={editingTransaction.amount}
-                onChange={e =>
-                  setEditingTransaction({ ...editingTransaction, amount: e.target.value })
-                }
-                placeholder="Amount"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date
-              </label>
-              <input
-                type="date"
-                className="form-input w-full"
-                value={editingTransaction.date}
-                onChange={e =>
-                  setEditingTransaction({ ...editingTransaction, date: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Category
-              </label>
-              <select
-                className="form-select w-full"
-                value={editingTransaction.category}
-                onChange={e =>
-                  setEditingTransaction({ ...editingTransaction, category: e.target.value })
-                }
+            <div className="flex justify-end mt-4 space-x-2">
+              <button
+                className="btn btn-outline"
+                onClick={() => setEditingTransaction(null)}
               >
-                <option value="">Select Category</option>
-                {categories.map(category => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={handleEditTransaction}>
+                Save Changes
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Type
-              </label>
-              <select
-                className="form-select w-full"
-                value={editingTransaction.type}
-                onChange={e =>
-                  setEditingTransaction({ ...editingTransaction, type: e.target.value })
-                }
-              >
-                <option value="expense">Expense</option>
-                <option value="income">Income</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Notes
-              </label>
-              <textarea
-                className="form-input w-full"
-                value={editingTransaction.notes || ""}
-                onChange={e =>
-                  setEditingTransaction({ ...editingTransaction, notes: e.target.value })
-                }
-                placeholder="Additional notes"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end mt-4 space-x-2">
-            <button
-              className="btn btn-outline"
-              onClick={() => setEditingTransaction(null)}
-            >
-              Cancel
-            </button>
-            <button className="btn btn-primary" onClick={handleEditTransaction}>
-              Save Changes
-            </button>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Transactions List */}
-      <div className="bg-white rounded-lg shadow">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+        className="bg-white rounded-lg shadow"
+      >
         <div className="p-4 border-b">
           <h2 className="text-xl font-bold">Transactions</h2>
         </div>
         <div className="p-4">
           {transactions.length === 0 ? (
-            <p className="text-gray-500">No transactions found. Add your first transaction to get started.</p>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-gray-500"
+            >
+              No transactions found. Add your first transaction to get started.
+            </motion.p>
           ) : (
             <div className="space-y-4">
-              {transactions.map((transaction) => (
-                <div
-                  key={transaction.id}
-                  className="border rounded-lg p-4"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="flex items-center">
-                        <span className="text-2xl mr-2">
-                          {categories.find(c => c.id === transaction.category)?.icon || "💰"}
-                        </span>
-                        <div>
-                          <h3 className="font-bold">{transaction.description}</h3>
-                          <p className="text-gray-500 text-sm">
-                            {new Date(transaction.date).toLocaleDateString()} • 
-                            {categories.find(c => c.id === transaction.category)?.name || "Uncategorized"}
-                          </p>
+              <AnimatePresence>
+                {transactions.map((transaction, index) => (
+                  <motion.div
+                    key={transaction.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    className="border rounded-lg p-4"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="flex items-center">
+                          <span className="text-2xl mr-2">
+                            {categories.find(c => c.id === transaction.category)?.icon || "💰"}
+                          </span>
+                          <div>
+                            <h3 className="font-bold">{transaction.description}</h3>
+                            <p className="text-gray-500 text-sm">
+                              {new Date(transaction.date).toLocaleDateString()} • 
+                              {categories.find(c => c.id === transaction.category)?.name || "Uncategorized"}
+                            </p>
+                          </div>
+                        </div>
+                        {transaction.notes && (
+                          <p className="text-gray-500 mt-2 text-sm">{transaction.notes}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <p className={`text-lg font-bold ${
+                          transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {formatCurrency(transaction.amount)}
+                        </p>
+                        <div className="flex space-x-2">
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={() => setEditingTransaction(transaction)}
+                          >
+                            <FiEdit2 />
+                          </button>
+                          <button
+                            className="btn btn-outline btn-sm text-red-500"
+                            onClick={() => handleDeleteTransaction(transaction.id)}
+                          >
+                            <FiTrash2 />
+                          </button>
                         </div>
                       </div>
-                      {transaction.notes && (
-                        <p className="text-gray-500 mt-2 text-sm">{transaction.notes}</p>
-                      )}
                     </div>
-                    <div className="flex items-center space-x-4">
-                      <p className={`text-lg font-bold ${
-                        transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {formatCurrency(transaction.amount)}
-                      </p>
-                      <div className="flex space-x-2">
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={() => setEditingTransaction(transaction)}
-                        >
-                          <FiEdit2 />
-                        </button>
-                        <button
-                          className="btn btn-outline btn-sm text-red-500"
-                          onClick={() => handleDeleteTransaction(transaction.id)}
-                        >
-                          <FiTrash2 />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
 

@@ -5,6 +5,7 @@ import { FiSave } from "react-icons/fi"
 import { settingsService } from "../services/api";
 import { authService } from "../services/auth";
 import LoadingSpinner from '../components/LoadingSpinner'
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function SettingsTab({ user }) {
   const [activeSection, setActiveSection] = useState("profile")
@@ -127,14 +128,23 @@ export default function SettingsTab({ user }) {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex justify-center items-center h-64"
+      >
         <LoadingSpinner text="Loading settings..." />
-      </div>
+      </motion.div>
     )
   }
 
   return (
-    <div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="p-4"
+    >
       <h1 className="page-title">Settings</h1>
 
       <div className="flex flex-col md:flex-row gap-6">
@@ -190,301 +200,367 @@ export default function SettingsTab({ user }) {
         <div className="card flex-1">
           {activeSection === "profile" && (
             <>
-              <div className="card-header">
-                <h2 className="card-title">Profile Settings</h2>
-              </div>
-              <div className="card-content">
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="form-group">
-                    <label className="form-label">Profile Avatar</label>
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-semibold text-gray-700">
-                        {getInitials(profileData) || "U"}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="bg-white rounded-lg shadow mb-6"
+              >
+                <div className="p-4 border-b">
+                  <h2 className="text-xl font-bold">Profile Settings</h2>
+                </div>
+                <div className="p-4">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="form-group">
+                      <label className="form-label">Profile Avatar</label>
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-semibold text-gray-700">
+                          {getInitials(profileData) || "U"}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Full Name</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={profileData.name}
-                      onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Email</label>
-                    <input
-                      type="email"
-                      className="form-input"
-                      value={profileData.email}
-                      onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Phone</label>
-                    <input
-                      type="tel"
-                      className="form-input"
-                      value={profileData.phone}
-                      onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                    />
+                    <div className="form-group">
+                      <label className="form-label">Full Name</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={profileData.name}
+                        onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Email</label>
+                      <input
+                        type="email"
+                        className="form-input"
+                        value={profileData.email}
+                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Phone</label>
+                      <input
+                        type="tel"
+                        className="form-input"
+                        value={profileData.phone}
+                        onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="card-footer">
-                <button className="btn btn-primary" onClick={handleSaveProfile}>
-                  <FiSave />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="flex justify-end"
+              >
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSaveProfile}
+                >
+                  <FiSave className="mr-2" />
                   Save Changes
                 </button>
-              </div>
+              </motion.div>
             </>
           )}
 
           {activeSection === "account" && (
             <>
-              <div className="card-header">
-                <h2 className="card-title">Account Settings</h2>
-              </div>
-              <div className="card-content">
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="form-group">
-                    <label className="form-label">Change Password</label>
-                    <input type="password" className="form-input mb-2" placeholder="Current Password" />
-                    <input type="password" className="form-input mb-2" placeholder="New Password" />
-                    <input type="password" className="form-input" placeholder="Confirm New Password" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Two-Factor Authentication</label>
-                    <div className="flex items-center gap-2">
-                      <input type="checkbox" id="twoFactor" />
-                      <label htmlFor="twoFactor">Enable two-factor authentication</label>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="bg-white rounded-lg shadow mb-6"
+              >
+                <div className="p-4 border-b">
+                  <h2 className="text-xl font-bold">Account Settings</h2>
+                </div>
+                <div className="p-4">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="form-group">
+                      <label className="form-label">Change Password</label>
+                      <input type="password" className="form-input mb-2" placeholder="Current Password" />
+                      <input type="password" className="form-input mb-2" placeholder="New Password" />
+                      <input type="password" className="form-input" placeholder="Confirm New Password" />
                     </div>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Connected Accounts</label>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center p-2 border rounded">
-                        <span>Google</span>
-                        <button className="btn btn-outline btn-sm">Connect</button>
+                    <div className="form-group">
+                      <label className="form-label">Two-Factor Authentication</label>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="twoFactor" />
+                        <label htmlFor="twoFactor">Enable two-factor authentication</label>
                       </div>
-                      <div className="flex justify-between items-center p-2 border rounded">
-                        <span>Facebook</span>
-                        <button className="btn btn-outline btn-sm">Connect</button>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Connected Accounts</label>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center p-2 border rounded">
+                          <span>Google</span>
+                          <button className="btn btn-outline btn-sm">Connect</button>
+                        </div>
+                        <div className="flex justify-between items-center p-2 border rounded">
+                          <span>Facebook</span>
+                          <button className="btn btn-outline btn-sm">Connect</button>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="card-footer">
-                <button className="btn btn-primary">
-                  <FiSave />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="flex justify-end"
+              >
+                <button
+                  className="btn btn-primary"
+                >
+                  <FiSave className="mr-2" />
                   Save Changes
                 </button>
-              </div>
+              </motion.div>
             </>
           )}
 
           {activeSection === "preferences" && (
             <>
-              <div className="card-header">
-                <h2 className="card-title">Preferences</h2>
-              </div>
-              <div className="card-content">
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="form-group">
-                    <label className="form-label">Theme</label>
-                    <select
-                      className="form-select"
-                      value={preferencesData.theme}
-                      onChange={(e) => setPreferencesData({ ...preferencesData, theme: e.target.value })}
-                    >
-                      <option value="light">Light</option>
-                      <option value="dark">Dark</option>
-                      <option value="System Default">System Default</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Language</label>
-                    <select
-                      className="form-select"
-                      value={preferencesData.language}
-                      onChange={(e) => setPreferencesData({ ...preferencesData, language: e.target.value })}
-                    >
-                      <option value="en">English</option>
-                      <option value="Hindi">Hindi</option>
-                      <option value="Tamil">Tamil</option>
-                      <option value="Telugu">Telugu</option>
-                      <option value="Bengali">Bengali</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Date Format</label>
-                    <select
-                      className="form-select"
-                      value={preferencesData.date_format}
-                      onChange={(e) => setPreferencesData({ ...preferencesData, date_format: e.target.value })}
-                    >
-                      <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                      <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                      <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Start of Week</label>
-                    <select
-                      className="form-select"
-                      value={preferencesData.start_of_week}
-                      onChange={(e) => setPreferencesData({ ...preferencesData, start_of_week: e.target.value })}
-                    >
-                      <option value="Monday">Monday</option>
-                      <option value="Sunday">Sunday</option>
-                    </select>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="bg-white rounded-lg shadow mb-6"
+              >
+                <div className="p-4 border-b">
+                  <h2 className="text-xl font-bold">Preferences</h2>
+                </div>
+                <div className="p-4">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="form-group">
+                      <label className="form-label">Theme</label>
+                      <select
+                        className="form-select"
+                        value={preferencesData.theme}
+                        onChange={(e) => setPreferencesData({ ...preferencesData, theme: e.target.value })}
+                      >
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                        <option value="System Default">System Default</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Language</label>
+                      <select
+                        className="form-select"
+                        value={preferencesData.language}
+                        onChange={(e) => setPreferencesData({ ...preferencesData, language: e.target.value })}
+                      >
+                        <option value="en">English</option>
+                        <option value="Hindi">Hindi</option>
+                        <option value="Tamil">Tamil</option>
+                        <option value="Telugu">Telugu</option>
+                        <option value="Bengali">Bengali</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Date Format</label>
+                      <select
+                        className="form-select"
+                        value={preferencesData.date_format}
+                        onChange={(e) => setPreferencesData({ ...preferencesData, date_format: e.target.value })}
+                      >
+                        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                        <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                        <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Start of Week</label>
+                      <select
+                        className="form-select"
+                        value={preferencesData.start_of_week}
+                        onChange={(e) => setPreferencesData({ ...preferencesData, start_of_week: e.target.value })}
+                      >
+                        <option value="Monday">Monday</option>
+                        <option value="Sunday">Sunday</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="card-footer">
-                <button className="btn btn-primary" onClick={handleSavePreferences}>
-                  <FiSave />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="flex justify-end"
+              >
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSavePreferences}
+                >
+                  <FiSave className="mr-2" />
                   Save Changes
                 </button>
-              </div>
+              </motion.div>
             </>
           )}
 
           {activeSection === "notifications" && (
             <>
-              <div className="card-header">
-                <h2 className="card-title">Notification Settings</h2>
-              </div>
-              <div className="card-content">
-                <div className="space-y-4">
-                  <div className="form-group">
-                    <label className="form-label">Email Notifications</label>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="emailBudget"
-                          checked={notificationsData.email_notifications}
-                          onChange={(e) =>
-                            setNotificationsData({ ...notificationsData, email_notifications: e.target.checked })
-                          }
-                        />
-                        <label htmlFor="emailBudget">Budget alerts</label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="emailReport"
-                          checked={notificationsData.email_notifications}
-                          onChange={(e) =>
-                            setNotificationsData({ ...notificationsData, email_notifications: e.target.checked })
-                          }
-                        />
-                        <label htmlFor="emailReport">Monthly reports</label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="emailTips"
-                          checked={notificationsData.email_notifications}
-                          onChange={(e) =>
-                            setNotificationsData({ ...notificationsData, email_notifications: e.target.checked })
-                          }
-                        />
-                        <label htmlFor="emailTips">Saving tips and recommendations</label>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Push Notifications</label>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="pushTransaction"
-                          checked={notificationsData.push_notifications}
-                          onChange={(e) =>
-                            setNotificationsData({ ...notificationsData, push_notifications: e.target.checked })
-                          }
-                        />
-                        <label htmlFor="pushTransaction">New transactions</label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="pushBudget"
-                          checked={notificationsData.push_notifications}
-                          onChange={(e) =>
-                            setNotificationsData({ ...notificationsData, push_notifications: e.target.checked })
-                          }
-                        />
-                        <label htmlFor="pushBudget">Budget alerts</label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="pushBill"
-                          checked={notificationsData.push_notifications}
-                          onChange={(e) =>
-                            setNotificationsData({ ...notificationsData, push_notifications: e.target.checked })
-                          }
-                        />
-                        <label htmlFor="pushBill">Bill reminders</label>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="bg-white rounded-lg shadow mb-6"
+              >
+                <div className="p-4 border-b">
+                  <h2 className="text-xl font-bold">Notification Settings</h2>
+                </div>
+                <div className="p-4">
+                  <div className="space-y-4">
+                    <div className="form-group">
+                      <label className="form-label">Email Notifications</label>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="emailBudget"
+                            checked={notificationsData.email_notifications}
+                            onChange={(e) =>
+                              setNotificationsData({ ...notificationsData, email_notifications: e.target.checked })
+                            }
+                          />
+                          <label htmlFor="emailBudget">Budget alerts</label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="emailReport"
+                            checked={notificationsData.email_notifications}
+                            onChange={(e) =>
+                              setNotificationsData({ ...notificationsData, email_notifications: e.target.checked })
+                            }
+                          />
+                          <label htmlFor="emailReport">Monthly reports</label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="emailTips"
+                            checked={notificationsData.email_notifications}
+                            onChange={(e) =>
+                              setNotificationsData({ ...notificationsData, email_notifications: e.target.checked })
+                            }
+                          />
+                          <label htmlFor="emailTips">Saving tips and recommendations</label>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Notification Frequency</label>
-                    <select className="form-select">
-                      <option>Immediately</option>
-                      <option>Daily Digest</option>
-                      <option>Weekly Digest</option>
-                    </select>
+                    <div className="form-group">
+                      <label className="form-label">Push Notifications</label>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="pushTransaction"
+                            checked={notificationsData.push_notifications}
+                            onChange={(e) =>
+                              setNotificationsData({ ...notificationsData, push_notifications: e.target.checked })
+                            }
+                          />
+                          <label htmlFor="pushTransaction">New transactions</label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="pushBudget"
+                            checked={notificationsData.push_notifications}
+                            onChange={(e) =>
+                              setNotificationsData({ ...notificationsData, push_notifications: e.target.checked })
+                            }
+                          />
+                          <label htmlFor="pushBudget">Budget alerts</label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="pushBill"
+                            checked={notificationsData.push_notifications}
+                            onChange={(e) =>
+                              setNotificationsData({ ...notificationsData, push_notifications: e.target.checked })
+                            }
+                          />
+                          <label htmlFor="pushBill">Bill reminders</label>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Notification Frequency</label>
+                      <select className="form-select">
+                        <option>Immediately</option>
+                        <option>Daily Digest</option>
+                        <option>Weekly Digest</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="card-footer">
-                <button className="btn btn-primary" onClick={handleSaveNotifications}>
-                  <FiSave />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="flex justify-end"
+              >
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSaveNotifications}
+                >
+                  <FiSave className="mr-2" />
                   Save Changes
                 </button>
-              </div>
+              </motion.div>
             </>
           )}
 
           {activeSection === "data" && (
             <>
-              <div className="card-header">
-                <h2 className="card-title">Data Management</h2>
-              </div>
-              <div className="card-content">
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">Data Backup</h3>
-                    <p className="text-sm text-muted mb-3">Create and manage backups of your data</p>
-                    <div className="flex gap-2">
-                      <button className="btn btn-primary">Create Backup</button>
-                      <button className="btn btn-outline">Restore Backup</button>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="bg-white rounded-lg shadow mb-6"
+              >
+                <div className="p-4 border-b">
+                  <h2 className="text-xl font-bold">Data Management</h2>
+                </div>
+                <div className="p-4">
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Data Backup</h3>
+                      <p className="text-sm text-muted mb-3">Create and manage backups of your data</p>
+                      <div className="flex gap-2">
+                        <button className="btn btn-primary">Create Backup</button>
+                        <button className="btn btn-outline">Restore Backup</button>
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium mb-2 text-expense">Danger Zone</h3>
+                      <p className="text-sm text-muted mb-3">Permanently delete your account and all associated data</p>
+                      <button
+                        className="btn btn-outline"
+                        style={{ borderColor: "var(--expense-color)", color: "var(--expense-color)" }}
+                      >
+                        Delete Account
+                      </button>
                     </div>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-medium mb-2 text-expense">Danger Zone</h3>
-                    <p className="text-sm text-muted mb-3">Permanently delete your account and all associated data</p>
-                    <button
-                      className="btn btn-outline"
-                      style={{ borderColor: "var(--expense-color)", color: "var(--expense-color)" }}
-                    >
-                      Delete Account
-                    </button>
-                  </div>
                 </div>
-              </div>
+              </motion.div>
             </>
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

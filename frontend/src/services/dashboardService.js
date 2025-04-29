@@ -1,32 +1,163 @@
 // frontend/src/services/dashboardService.js
 
-import { fetchAPI } from "./api";
+import { dashboardAPI, transactionsAPI, categoriesAPI, budgetsAPI } from './api'
 
 // Fetch dashboard summary
-export const getSummary = async () => {
-  return fetchAPI("/dashboard/summary");
-};
+const getSummary = async () => {
+  try {
+    const response = await dashboardAPI.getSummary()
+    const data = response || {}
+    return {
+      totalExpenses: parseFloat(data.total_expenses || 0),
+      totalIncome: parseFloat(data.total_income || 0),
+      currentBalance: parseFloat(data.current_balance || 0),
+      savings: parseFloat(data.savings || 0),
+      expenseTrend: data.expense_trend || "",
+      incomeTrend: data.income_trend || "",
+      balanceTrend: data.balance_trend || "",
+      savingsRate: data.savings_rate || "0%"
+    }
+  } catch (error) {
+    console.error('Error fetching dashboard summary:', error)
+    return {
+      totalExpenses: 0,
+      totalIncome: 0,
+      currentBalance: 0,
+      savings: 0,
+      expenseTrend: "",
+      incomeTrend: "",
+      balanceTrend: "",
+      savingsRate: "0%"
+    }
+  }
+}
 
 // Fetch budget status
-export const getBudgetStatus = async () => {
-  return fetchAPI("/dashboard/budget-status");
-};
+const getBudgetStatus = async () => {
+  try {
+    const response = await budgetsAPI.getAll()
+    return (response || []).map(budget => ({
+      category: budget.category_name || budget.name || budget.category || 'Uncategorized',
+      limit: parseFloat(budget.amount || 0),
+      spent: parseFloat(budget.spent || budget.current_spending || 0)
+    }))
+  } catch (error) {
+    console.error('Error fetching budget status:', error)
+    return []
+  }
+}
 
-// Fetch recent transactions (limit is optional)
-export const getRecentTransactions = async (limit = 5) => {
-  return fetchAPI(`/dashboard/recent-transactions?limit=${limit}`);
-};
+// Fetch recent transactions
+const getRecentTransactions = async () => {
+  try {
+    const response = await transactionsAPI.getAll({ limit: 5 })
+    return (response || []).map(transaction => ({
+      id: transaction.id,
+      description: transaction.description || '',
+      amount: parseFloat(transaction.amount || 0),
+      type: transaction.type || 'expense',
+      date: transaction.date || new Date().toISOString(),
+      category: transaction.category_name || transaction.name || transaction.category || 'Uncategorized'
+    }))
+  } catch (error) {
+    console.error('Error fetching recent transactions:', error)
+    return []
+  }
+}
 
 // Fetch category breakdown
-export const getCategoryBreakdown = async () => {
-  return fetchAPI("/dashboard/category-breakdown");
-};
+const getCategoryBreakdown = async () => {
+  try {
+    const response = await categoriesAPI.getExpenseBreakdown()
+    return (response || []).map(category => ({
+      category: category.name || category.category_name || category.category || 'Uncategorized',
+      amount: parseFloat(category.amount || 0),
+      percentage: parseFloat(category.percentage || 0),
+      color: category.color || undefined
+    }))
+  } catch (error) {
+    console.error('Error fetching category breakdown:', error)
+    return []
+  }
+}
+
+const getExpenseTrends = async () => {
+  try {
+    const response = await transactionsAPI.getAll()
+    const transactions = response || []
+    
+    // Calculate monthly expense trends
+    const trendsMap = {}
+    transactions.forEach((t) => {
+      if (t.type === 'expense') {
+        const date = new Date(t.date)
+        const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+        trendsMap[month] = (trendsMap[month] || 0) + parseFloat(t.amount || 0)
+      }
+    })
+
+    // Get last 12 months
+    const now = new Date()
+    const months = []
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      months.push(m)
+    }
+
+    return months.map((m) => ({ month: m, total: trendsMap[m] || 0 }))
+  } catch (error) {
+    console.error('Error fetching expense trends:', error)
+    return []
+  }
+}
+
+const getDashboardData = async () => {
+  try {
+    const [summary, recentTransactions, categoryBreakdown, budgetStatus, expenseTrends] = await Promise.all([
+      getSummary(),
+      getRecentTransactions(),
+      getCategoryBreakdown(),
+      getBudgetStatus(),
+      getExpenseTrends()
+    ])
+
+    return {
+      summary,
+      recentTransactions,
+      categoryBreakdown,
+      budgetStatus,
+      expenseTrends
+    }
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error)
+    // Return default data structure even if there's an error
+    return {
+      summary: {
+        totalExpenses: 0,
+        totalIncome: 0,
+        currentBalance: 0,
+        savings: 0,
+        expenseTrend: "",
+        incomeTrend: "",
+        balanceTrend: "",
+        savingsRate: "0%"
+      },
+      recentTransactions: [],
+      categoryBreakdown: [],
+      budgetStatus: [],
+      expenseTrends: []
+    }
+  }
+}
 
 const dashboardService = {
   getSummary,
   getBudgetStatus,
   getRecentTransactions,
   getCategoryBreakdown,
-};
+  getExpenseTrends,
+  getDashboardData
+}
 
-export default dashboardService;
+export default dashboardService

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { FiEdit2, FiPlus, FiX } from "react-icons/fi"
 import { budgetsAPI, categoriesAPI } from "../services/api"
 import { formatCurrency } from '../utils/format'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function BudgetsTab() {
   const [timeframe, setTimeframe] = useState("month")
@@ -114,10 +115,7 @@ export default function BudgetsTab() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-center">
-          <div className="spinner"></div>
-          <p className="mt-4">Loading budgets...</p>
-        </div>
+        <LoadingSpinner text="Loading budgets..." />
       </div>
     )
   }
@@ -276,7 +274,7 @@ export default function BudgetsTab() {
       )}
 
       {/* Budget Summary */}
-      <div className="mb-6">
+      <div className="card mb-6">
         <h2 className="text-2xl font-bold mb-2">Budget Overview</h2>
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-white p-4 rounded-lg shadow">

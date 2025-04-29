@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { FiChevronDown, FiEdit2, FiFilter, FiPlus, FiTrash2, FiX } from "react-icons/fi"
 import { transactionsAPI, categoriesAPI } from "../services/api"
-import { formatCurrency } from "../utils/format"
+import { formatCurrency, formatDate } from "../utils/format"
+import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function TransactionsTab({ onError }) {
   const [filterOpen, setFilterOpen] = useState(false)
@@ -37,6 +38,16 @@ export default function TransactionsTab({ onError }) {
     notes: "",
   })
   const [error, setError] = useState(null)
+  const [showFilterForm, setShowFilterForm] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [filterData, setFilterData] = useState({
+    startDate: "",
+    endDate: "",
+    category: "",
+    type: "",
+    minAmount: "",
+    maxAmount: "",
+  })
 
   useEffect(() => {
     fetchData()
@@ -181,10 +192,7 @@ export default function TransactionsTab({ onError }) {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-center">
-          <div className="spinner"></div>
-          <p className="mt-4">Loading transactions...</p>
-        </div>
+        <LoadingSpinner text="Loading transactions..." />
       </div>
     )
   }

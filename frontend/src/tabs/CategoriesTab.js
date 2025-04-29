@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { FiEdit2, FiPlus, FiTrash2 } from "react-icons/fi"
 import { categoriesAPI } from "../services/api"
 import { budgetsAPI } from "../services/api"
 import { formatCurrency } from "../utils/format"
+import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function CategoriesTab() {
   const [categories, setCategories] = useState([])
@@ -95,10 +96,7 @@ export default function CategoriesTab() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-center">
-          <div className="spinner"></div>
-          <p className="mt-4">Loading categories...</p>
-        </div>
+        <LoadingSpinner text="Loading categories..." />
       </div>
     )
   }

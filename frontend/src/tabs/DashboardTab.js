@@ -5,6 +5,7 @@ import { FiCreditCard, FiDollarSign, FiDownload, FiPieChart, FiPlus } from "reac
 import { dashboardAPI, transactionsAPI, categoriesAPI, budgetsAPI } from "../services/api"
 import { formatCurrency, formatDate } from '../utils/format'
 import { LineChart, BarChart, PieChart, createExpenseBreakdownData, createTrendData, createBudgetVsActualData } from '../components/Charts'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function DashboardTab({ onError }) {
   const [timeframe, setTimeframe] = useState("month")
@@ -131,10 +132,7 @@ export default function DashboardTab({ onError }) {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-center">
-          <div className="spinner"></div>
-          <p className="mt-4">Loading dashboard data...</p>
-        </div>
+        <LoadingSpinner text="Loading dashboard data..." />
       </div>
     )
   }

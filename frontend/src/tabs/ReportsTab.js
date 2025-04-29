@@ -20,6 +20,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import LoadingSpinner from '../components/LoadingSpinner'
 
 ChartJS.register(
   CategoryScale,
@@ -120,7 +121,7 @@ export default function ReportsTab() {
       {/* Report Content */}
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
-          <p>Loading...</p>
+          <LoadingSpinner text="Loading reports..." />
         </div>
       ) : error ? (
         <div className="flex justify-center items-center h-64">

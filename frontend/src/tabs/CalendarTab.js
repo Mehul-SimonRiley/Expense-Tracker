@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { FiChevronLeft, FiChevronRight, FiPlus } from "react-icons/fi"
 import { getTransactions } from '../services/calendarService'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function CalendarTab() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -90,6 +91,14 @@ export default function CalendarTab() {
 
   // Calendar days
   const calendarDays = generateCalendarDays()
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <LoadingSpinner text="Loading calendar events..." />
+      </div>
+    )
+  }
 
   return (
     <div>

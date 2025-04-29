@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { FiSave } from "react-icons/fi"
 import { settingsService } from "../services/api";
 import { authService } from "../services/auth";
+import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function SettingsTab({ user }) {
   const [activeSection, setActiveSection] = useState("profile")
-
   const [profileData, setProfileData] = useState({
     name: "",
     email: "",
@@ -25,6 +25,8 @@ export default function SettingsTab({ user }) {
     email_notifications: true,
     push_notifications: true,
   });
+
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -122,6 +124,14 @@ export default function SettingsTab({ user }) {
       alert("Failed to update notifications. Please try again later.");
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <LoadingSpinner text="Loading settings..." />
+      </div>
+    )
+  }
 
   return (
     <div>

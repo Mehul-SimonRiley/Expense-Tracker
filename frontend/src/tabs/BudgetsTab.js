@@ -135,7 +135,7 @@ export default function BudgetsTab() {
   }
 
   const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0)
-  const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0)
+  const totalSpent = budgets.reduce((sum, budget) => sum + budget.current_spending, 0)
   const remaining = totalBudget - totalSpent
 
   return (
@@ -272,6 +272,10 @@ export default function BudgetsTab() {
                     </button>
                   </div>
                 </div>
+                <div className="flex justify-between text-sm text-muted mt-1">
+                  <div>Budgeted: {formatCurrency(budget.amount)}</div>
+                  <div>Spent: {formatCurrency(budget.current_spending)}</div>
+                </div>
                 <div className="mt-2">
                   <div
                     style={{
@@ -284,13 +288,10 @@ export default function BudgetsTab() {
                   >
                     <div
                       style={{
-                        width: `${Math.min(
-                          ((budget.spent) / budget.amount) * 100 || 0,
-                          100
-                        )}%`,
+                        width: `${Math.min(((budget.current_spending) / budget.amount) * 100 || 0, 100)}%`,
                         height: "100%",
                         backgroundColor:
-                          budget.spent > budget.amount
+                          budget.current_spending > budget.amount
                             ? "var(--expense-color)"
                             : "var(--primary-color)",
                         borderRadius: "9999px",

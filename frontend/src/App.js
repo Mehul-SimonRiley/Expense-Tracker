@@ -13,6 +13,7 @@ import SettingsTab from './tabs/SettingsTab';
 import LoginPage from './LoginPage';
 import { authService } from './services/auth';
 import './ExpenseTracker.css';
+import NotificationsDropdown from './components/NotificationsDropdown';
 
 const App = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -152,10 +153,7 @@ const App = () => {
                                         <span className="logo-text">Traxpense</span>
                                     </div>
                                     <div className="header-actions">
-                                        <button className="notification-button">
-                                            <FiBell />
-                                            <span className="notification-badge">3</span>
-                                        </button>
+                                        <NotificationsDropdown />
                                         <button
                                             className="avatar-button"
                                             onClick={() => setActiveTab('settings')}

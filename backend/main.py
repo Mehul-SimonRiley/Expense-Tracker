@@ -49,6 +49,7 @@ def create_app():
     from routes.users import users_bp
     from routes.reports import reports_bp
     from routes.dashboard import dashboard_bp
+    from routes.notifications import notifications_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(transactions_bp, url_prefix='/api/transactions')
@@ -57,6 +58,7 @@ def create_app():
     app.register_blueprint(users_bp, url_prefix='/api/users')
     app.register_blueprint(reports_bp, url_prefix='/api/reports')
     app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
+    app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
 
     return app
 

@@ -1,21 +1,25 @@
 from datetime import timedelta
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Determine the absolute path to the project's root directory
-# Assuming config.py is in the backend directory
-basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-instance_path = os.path.join(basedir, 'backend', 'instance')
+basedir = os.path.abspath(os.path.dirname(__file__))
+instance_path = os.path.join(basedir, 'instance')
 
 class Config:
     # Flask
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-here')
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'default-secret-key-for-development-1234567890')
     
     # Database
-    SQLALCHEMY_DATABASE_URI = f'sqlite:///{os.path.join(instance_path, "expense_tracker.db")}'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+        f'sqlite:///{os.path.join(instance_path, "expense_tracker.db")}'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # JWT
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'your-jwt-secret-key-here')
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'default-jwt-secret-key-for-development-1234567890')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     JWT_TOKEN_LOCATION = ['headers']
@@ -34,7 +38,7 @@ class Config:
     CORS_HEADERS = 'Content-Type'
     
     # CORS
-    CORS_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5000", "http://127.0.0.1:5000"]
+    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', "http://localhost:3000,http://127.0.0.1:3000").split(',')
     CORS_METHODS = ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"]
     CORS_ALLOW_HEADERS = ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
     CORS_EXPOSE_HEADERS = ["Content-Type", "Authorization"]

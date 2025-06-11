@@ -1,41 +1,45 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { FiSave, FiUser, FiSettings, FiBell, FiDollarSign, FiShield, FiEye, FiEyeOff, FiCamera, FiMail, FiSmartphone, FiCheck, FiX } from "react-icons/fi"
+import React, { useState, useEffect, useCallback } from "react"
+import {
+  FiSave,
+  FiUser,
+  FiSettings,
+  FiBell,
+  FiDollarSign,
+  FiShield,
+  FiEye,
+  FiEyeOff,
+  FiCamera,
+  FiMail,
+  FiSmartphone,
+  FiCheck,
+  FiX,
+} from "react-icons/fi"
 import settingsService from "../services/settingsService"
-import { motion, AnimatePresence } from "framer-motion"
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from "../components/LoadingSpinner"
-import "./SettingsTab.css";
-
+import "./SettingsTab.css"
 
 export default function SettingsTab({ onError }) {
-  const { user, updateUser, logout } = useAuth();
   const [activeSection, setActiveSection] = useState("profile")
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [saveStatus, setSaveStatus] = useState(null); // 'success', 'error', or null
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteConfirmation, setDeleteConfirmation] = useState('');
-  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false)
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [saveStatus, setSaveStatus] = useState(null) // 'success', 'error', or null
 
   // Profile Settings State
   const [profileData, setProfileData] = useState({
-    firstName: user?.name?.split(" ")[0] || "",
-    lastName: user?.name?.split(" ")[1] || "",
-    email: user?.email || "",
-    phone: user?.phone || "",
-    avatar: user?.profile_picture || "/placeholder.svg?height=80&width=80",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    avatar: "",
     bio: "",
     dateOfBirth: "",
     occupation: "",
     location: "",
-  });
+  })
 
   // Security Settings State
   const [securityData, setSecurityData] = useState({
@@ -45,7 +49,7 @@ export default function SettingsTab({ onError }) {
     twoFactorEnabled: false,
     loginNotifications: true,
     sessionTimeout: "30", // minutes
-  });
+  })
 
   // Preferences State
   const [preferencesData, setPreferencesData] = useState({
@@ -53,7 +57,7 @@ export default function SettingsTab({ onError }) {
     dateFormat: "MM/DD/YYYY",
     timeFormat: "12", // 12 or 24
     timezone: "America/New_York",
-  });
+  })
 
   // Currency Settings State
   const [currencyData, setCurrencyData] = useState({
@@ -63,7 +67,7 @@ export default function SettingsTab({ onError }) {
     thousandsSeparator: ",",
     decimalPlaces: 2,
     showCurrencySymbol: true,
-  });
+  })
 
   // Notification Settings State
   const [notificationData, setNotificationData] = useState({
@@ -86,14 +90,57 @@ export default function SettingsTab({ onError }) {
       startTime: "22:00",
       endTime: "08:00",
     },
-  });
+  })
+
+  const settingsNavigation = [
+    { id: "profile", label: "Profile", icon: FiUser },
+    { id: "security", label: "Security", icon: FiShield },
+    { id: "preferences", label: "Preferences", icon: FiSettings },
+    // Removed from navigation, but data structure kept for backend integration
+    // { id: "currency", label: "Currency", icon: FiDollarSign },
+    { id: "notifications", label: "Notifications", icon: FiBell },
+  ]
+
+  const currencies = [
+    { code: "USD", name: "US Dollar", symbol: "$" },
+    { code: "EUR", name: "Euro", symbol: "€" },
+    { code: "GBP", name: "British Pound", symbol: "£" },
+    { code: "JPY", name: "Japanese Yen", symbol: "¥" },
+    { code: "CAD", name: "Canadian Dollar", symbol: "C$" },
+    { code: "AUD", name: "Australian Dollar", symbol: "A$" },
+    { code: "INR", name: "Indian Rupee", symbol: "₹" },
+    { code: "CNY", name: "Chinese Yuan", symbol: "¥" },
+  ]
+
+  const languages = [
+    { code: "en", name: "English" },
+    { code: "es", name: "Español" },
+    { code: "fr", name: "Français" },
+    { code: "de", name: "Deutsch" },
+    { code: "it", name: "Italiano" },
+    { code: "pt", name: "Português" },
+    { code: "ru", name: "Русский" },
+    { code: "zh", name: "中文" },
+    { code: "ja", name: "日本語" },
+    { code: "ko", name: "한국어" },
+  ]
+
+  const timezones = [
+    "America/New_York",
+    "America/Chicago",
+    "America/Denver",
+    "America/Los_Angeles",
+    "Europe/London",
+    "Europe/Paris",
+    "Europe/Berlin",
+    "Asia/Tokyo",
+    "Asia/Shanghai",
+    "Asia/Kolkata",
+    "Australia/Sydney",
+  ]
 
   // Fetch settings on component mount
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await settingsService.getSettings();
@@ -168,7 +215,11 @@ export default function SettingsTab({ onError }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [onError]);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   // Save settings function
   const saveSettings = async (section, data) => {
@@ -176,10 +227,9 @@ export default function SettingsTab({ onError }) {
       setIsLoading(true);
       setSaveStatus(null);
 
-      let response;
       switch (section) {
         case 'profile':
-          response = await settingsService.updateProfile({
+          await settingsService.updateProfile({
             name: `${data.firstName} ${data.lastName}`,
             email: data.email,
             phone: data.phone,
@@ -190,32 +240,24 @@ export default function SettingsTab({ onError }) {
           });
           break;
         case 'security':
-          response = await settingsService.updateSecurity({
+          await settingsService.updateSecurity({
+            current_password: data.currentPassword,
+            new_password: data.newPassword,
             two_factor_enabled: data.twoFactorEnabled,
             login_notifications: data.loginNotifications,
             session_timeout: parseInt(data.sessionTimeout),
           });
           break;
         case 'preferences':
-          response = await settingsService.updatePreferences({
+          await settingsService.updatePreferences({ 
             language: data.language,
             date_format: data.dateFormat,
             time_format: data.timeFormat,
             timezone: data.timezone,
           });
           break;
-        case 'currency':
-          response = await settingsService.updateCurrency({
-            primary_currency: data.primaryCurrency,
-            currency_display: data.currencyDisplay,
-            decimal_separator: data.decimalSeparator,
-            thousands_separator: data.thousandsSeparator,
-            decimal_places: data.decimalPlaces,
-            show_currency_symbol: data.showCurrencySymbol,
-          });
-          break;
         case 'notifications':
-          response = await settingsService.updateNotifications({
+          await settingsService.updateNotifications({
             email_notifications: data.emailNotifications,
             push_notifications: data.pushNotifications,
             notification_frequency: data.notificationFrequency,
@@ -235,7 +277,7 @@ export default function SettingsTab({ onError }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
   // Handle avatar upload
   const handleAvatarUpload = async (event) => {
@@ -245,7 +287,7 @@ export default function SettingsTab({ onError }) {
     try {
       setIsLoading(true);
       const response = await settingsService.uploadProfilePicture(file);
-      setProfileData({ ...profileData, avatar: response.profile_picture });
+      setProfileData({ ...profileData, avatar: response.data.profile_picture });
       setSaveStatus('success');
       setTimeout(() => setSaveStatus(null), 3000);
     } catch (error) {
@@ -255,548 +297,592 @@ export default function SettingsTab({ onError }) {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Helper to get initials from name or email
-  const getInitials = (user) => {
-    if (!user) return '';
-    if (user.name) {
-      const names = user.name.trim().split(' ');
-      if (names.length === 1) return names[0][0].toUpperCase();
-      return (names[0][0] + names[names.length - 1][0]).toUpperCase();
-    }
-    if (user.email) return user.email[0].toUpperCase();
-    return '';
-  };
-
-  const handleProfileChange = (e) => {
-    const { name, value } = e.target;
-    setProfileData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handlePreferencesChange = (e) => {
-    const { name, value } = e.target;
-    setPreferencesData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleNotificationsChange = (e) => {
-    const { name, checked } = e.target;
-    setNotificationData(prev => ({
-      ...prev,
-      [name]: checked
-    }));
-  };
-
-  const handleSecurityChange = (e) => {
-    const { name, value } = e.target;
-    setSecurityData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleCurrencyChange = (e) => {
-    const { name, value } = e.target;
-    setCurrencyData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleProfileSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setError(null);
-      await saveSettings('profile', profileData);
-      const updatedUser = await settingsService.updateProfile(profileData);
-      if (updatedUser) {
-        updateUser(updatedUser);
-        alert('Profile updated successfully!');
-      }
-    } catch (err) {
-      console.error('Error updating profile:', err);
-      setError('Failed to update profile. Please try again.');
-    }
-  };
-
-  const handlePreferencesSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setError(null);
-      await saveSettings('preferences', preferencesData);
-      alert('Preferences updated successfully!');
-    } catch (err) {
-      console.error('Error updating preferences:', err);
-      setError('Failed to update preferences. Please try again.');
-    }
-  };
-
-  const handleNotificationsSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setError(null);
-      await saveSettings('notifications', notificationData);
-      alert('Notification settings updated successfully!');
-    } catch (err) {
-      console.error('Error updating notifications:', err);
-      setError('Failed to update notification settings. Please try again.');
-    }
-  };
-
-  const handleSecuritySubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setError(null);
-      await saveSettings('security', securityData);
-      alert('Security settings updated successfully!');
-    } catch (err) {
-      console.error('Error updating security:', err);
-      setError('Failed to update security settings. Please try again.');
-    }
-  };
-
-  const handleCurrencySubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setError(null);
-      await saveSettings('currency', currencyData);
-      alert('Currency settings updated successfully!');
-    } catch (err) {
-      console.error('Error updating currency:', err);
-      setError('Failed to update currency settings. Please try again.');
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    if (deleteConfirmation !== 'DELETE') {
-      return;
-    }
-
-    try {
-      await settingsService.deleteAccount();
-      await logout();
-      navigate('/login');
-    } catch (error) {
-      console.error('Error deleting account:', error);
-      setError('Failed to delete account. Please try again.');
-    }
-  };
+  }
 
   if (isLoading) {
     return (
       <div className="loading-overlay">
-        <LoadingSpinner />
+        <LoadingSpinner text="Loading settings..." />
       </div>
-    )
+    );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="p-4"
-    >
-      <h1 className="page-title">Settings</h1>
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="page-title">Settings</h1>
+        {saveStatus && (
+          <div
+            className={`flex items-center gap-2 px-3 py-2 rounded-md ${
+              saveStatus === "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+            }`}
+          >
+            {saveStatus === "success" ? <FiCheck /> : <FiX />}
+            {saveStatus === "success" ? "Settings saved successfully!" : "Failed to save settings"}
+          </div>
+        )}
+      </div>
 
-      <div className="flex flex-col md:flex-row gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Settings Navigation */}
-        <div className="w-full md:w-1/4 md:min-h-[500px] border-r bg-white rounded-lg shadow-sm sticky top-4">
-          <div className="p-0">
-            <ul className="divide-y">
-              <li>
-                <button
-                  className={`w-full text-left px-4 py-3 rounded-none ${activeSection === "profile" ? "bg-black text-white" : "hover:bg-gray-100"}`}
-                  onClick={() => setActiveSection("profile")}
-                >
-                  Profile
-                </button>
-              </li>
-              <li>
-                <button
-                  className={`w-full text-left px-4 py-3 rounded-none ${activeSection === "preferences" ? "bg-black text-white" : "hover:bg-gray-100"}`}
-                  onClick={() => setActiveSection("preferences")}
-                >
-                  Preferences
-                </button>
-              </li>
-              <li>
-                <button
-                  className={`w-full text-left px-4 py-3 rounded-none ${activeSection === "notifications" ? "bg-black text-white" : "hover:bg-gray-100"}`}
-                  onClick={() => setActiveSection("notifications")}
-                >
-                  Notifications
-                </button>
-              </li>
-            </ul>
+        <div className="card lg:col-span-1">
+          <div className="card-content p-0">
+            <nav className="divide-y">
+              {settingsNavigation.map((item) => {
+                const Icon = item.icon
+                return (
+                  <button
+                    key={item.id}
+                    className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors settings-tab-item ${
+                      activeSection === item.id ? "active" : ""
+                    }`}
+                    onClick={() => setActiveSection(item.id)}
+                  >
+                    <Icon className="w-5 h-5" />
+                    {item.label}
+                  </button>
+                )
+              })}
+            </nav>
           </div>
         </div>
 
         {/* Settings Content */}
-        <div className="card flex-1">
+        <div className="card lg:col-span-3">
+          {/* Profile Settings */}
           {activeSection === "profile" && (
             <>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                className="bg-white rounded-lg shadow mb-6"
-              >
-                <div className="p-4 border-b">
-                  <h2 className="text-xl font-bold">Profile Settings</h2>
-                </div>
-                <div className="p-4">
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="form-group">
-                      <label className="form-label">Profile Avatar</label>
-                      <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-semibold text-gray-700">
-                          {getInitials(profileData) || "U"}
-                        </div>
+              <div className="card-header">
+                <h2 className="card-title">Profile Settings</h2>
+                <p className="text-sm text-muted">Manage your personal information and profile details</p>
+              </div>
+              <div className="card-content">
+                <div className="grid grid-cols-1 gap-6">
+                  {/* Avatar Section */}
+                  <div className="flex items-center gap-6">
+                    <div className="relative">
+                      <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+                        {profileData.avatar ? (
+                          <img
+                            src={profileData.avatar || "/placeholder.svg"}
+                            alt="Avatar"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          `${profileData.firstName?.[0] || ""}${profileData.lastName?.[0] || ""}`
+                        )}
                       </div>
+                      <label className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-md cursor-pointer border">
+                        <FiCamera className="w-4 h-4 text-gray-600" />
+                        <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                      </label>
                     </div>
+                    <div>
+                      <h3 className="font-medium">Profile Picture</h3>
+                      <p className="text-sm text-muted">Upload a new profile picture. Max size: 5MB</p>
+                    </div>
+                  </div>
+
+                  {/* Personal Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-group">
-                      <label className="form-label">Full Name</label>
+                      <label className="form-label">First Name</label>
                       <input
                         type="text"
                         className="form-input"
                         value={profileData.firstName}
                         onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
+                        placeholder="Enter your first name"
                       />
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Email</label>
+                      <label className="form-label">Last Name</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={profileData.lastName}
+                        onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
+                        placeholder="Enter your last name"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Email Address</label>
                       <input
                         type="email"
                         className="form-input"
                         value={profileData.email}
                         onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                        placeholder="Enter your email"
                       />
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Phone</label>
+                      <label className="form-label">Phone Number</label>
                       <input
                         type="tel"
                         className="form-input"
                         value={profileData.phone}
                         onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                        placeholder="Enter your phone number"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Date of Birth</label>
+                      <input
+                        type="date"
+                        className="form-input"
+                        value={profileData.dateOfBirth}
+                        onChange={(e) => setProfileData({ ...profileData, dateOfBirth: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Occupation</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={profileData.occupation}
+                        onChange={(e) => setProfileData({ ...profileData, occupation: e.target.value })}
+                        placeholder="Enter your occupation"
+                      />
+                    </div>
+                    <div className="form-group md:col-span-2">
+                      <label className="form-label">Location</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={profileData.location}
+                        onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
+                        placeholder="Enter your location"
+                      />
+                    </div>
+                    <div className="form-group md:col-span-2">
+                      <label className="form-label">Bio</label>
+                      <textarea
+                        className="form-input"
+                        rows="3"
+                        value={profileData.bio}
+                        onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                        placeholder="Tell us about yourself..."
                       />
                     </div>
                   </div>
                 </div>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="flex justify-end"
-              >
+              </div>
+              <div className="card-footer">
                 <button
                   className="btn btn-primary"
-                  onClick={handleProfileSubmit}
+                  onClick={() => saveSettings("profile", profileData)}
                   disabled={isLoading}
                 >
-                  <FiSave className="mr-2" />
-                  {isLoading ? "Saving..." : "Save Changes"}
+                  <FiSave className="w-4 h-4" />
+                  {isLoading ? "Saving..." : "Save Profile"}
                 </button>
-              </motion.div>
+              </div>
             </>
           )}
 
+          {/* Security Settings */}
+          {activeSection === "security" && (
+            <>
+              <div className="card-header">
+                <h2 className="card-title">Security Settings</h2>
+                <p className="text-sm text-muted">Manage your account security and privacy</p>
+              </div>
+              <div className="card-content">
+                <div className="space-y-6">
+                  {/* Change Password */}
+                  <div>
+                    <h3 className="text-lg font-medium mb-4">Change Password</h3>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="form-group">
+                        <label className="form-label">Current Password</label>
+                        <div className="relative">
+                          <input
+                            type={showCurrentPassword ? "text" : "password"}
+                            className="form-input pr-10"
+                            value={securityData.currentPassword}
+                            onChange={(e) => setSecurityData({ ...securityData, currentPassword: e.target.value })}
+                            placeholder="Enter current password"
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                          >
+                            {showCurrentPassword ? <FiEyeOff /> : <FiEye />}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">New Password</label>
+                        <div className="relative">
+                          <input
+                            type={showNewPassword ? "text" : "password"}
+                            className="form-input pr-10"
+                            value={securityData.newPassword}
+                            onChange={(e) => setSecurityData({ ...securityData, newPassword: e.target.value })}
+                            placeholder="Enter new password"
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                          >
+                            {showNewPassword ? <FiEyeOff /> : <FiEye />}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Confirm New Password</label>
+                        <div className="relative">
+                          <input
+                            type={showConfirmPassword ? "text" : "password"}
+                            className="form-input pr-10"
+                            value={securityData.confirmPassword}
+                            onChange={(e) => setSecurityData({ ...securityData, confirmPassword: e.target.value })}
+                            placeholder="Confirm new password"
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          >
+                            {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Two-Factor Authentication */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-medium mb-4">Two-Factor Authentication</h3>
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <div>
+                        <h4 className="font-medium">Enable 2FA</h4>
+                        <p className="text-sm text-muted">Add an extra layer of security to your account</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={securityData.twoFactorEnabled}
+                          onChange={(e) => setSecurityData({ ...securityData, twoFactorEnabled: e.target.checked })}
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Security Preferences */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-medium mb-4">Security Preferences</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium">Login Notifications</h4>
+                          <p className="text-sm text-muted">Get notified when someone logs into your account</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={securityData.loginNotifications}
+                            onChange={(e) => setSecurityData({ ...securityData, loginNotifications: e.target.checked })}
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Session Timeout (minutes)</label>
+                        <select
+                          className="form-select"
+                          value={securityData.sessionTimeout}
+                          onChange={(e) => setSecurityData({ ...securityData, sessionTimeout: e.target.value })}
+                        >
+                          <option value="15">15 minutes</option>
+                          <option value="30">30 minutes</option>
+                          <option value="60">1 hour</option>
+                          <option value="120">2 hours</option>
+                          <option value="480">8 hours</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="card-footer">
+                <button
+                  className="btn btn-primary"
+                  onClick={() => saveSettings("security", securityData)}
+                  disabled={isLoading}
+                >
+                  <FiSave className="w-4 h-4" />
+                  {isLoading ? "Saving..." : "Save Security Settings"}
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Preferences Settings */}
           {activeSection === "preferences" && (
             <>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                className="bg-white rounded-lg shadow mb-6"
-              >
-                <div className="p-4 border-b">
-                  <h2 className="text-xl font-bold">Preferences</h2>
-                </div>
-                <div className="p-4">
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="form-group">
-                      <label className="form-label">Language</label>
-                      <select
-                        className="form-select"
-                        value={preferencesData.language}
-                        onChange={(e) => setPreferencesData({ ...preferencesData, language: e.target.value })}
-                      >
-                        <option value="en">English</option>
-                        <option value="hi">Hindi</option>
-                        <option value="ta">Tamil</option>
-                        <option value="te">Telugu</option>
-                        <option value="bn">Bengali</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Date Format</label>
-                      <select
-                        className="form-select"
-                        value={preferencesData.dateFormat}
-                        onChange={(e) => setPreferencesData({ ...preferencesData, dateFormat: e.target.value })}
-                      >
-                        <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                        <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Time Format</label>
-                      <select
-                        className="form-select"
-                        value={preferencesData.timeFormat}
-                        onChange={(e) => setPreferencesData({ ...preferencesData, timeFormat: e.target.value })}
-                      >
-                        <option value="12">12-hour (AM/PM)</option>
-                        <option value="24">24-hour</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Timezone</label>
-                      <select
-                        className="form-select"
-                        value={preferencesData.timezone}
-                        onChange={(e) => setPreferencesData({ ...preferencesData, timezone: e.target.value })}
-                      >
-                        <option value="America/New_York">Eastern Time (ET)</option>
-                        <option value="America/Chicago">Central Time (CT)</option>
-                        <option value="America/Denver">Mountain Time (MT)</option>
-                        <option value="America/Los_Angeles">Pacific Time (PT)</option>
-                        <option value="Europe/London">GMT (BST)</option>
-                        <option value="Europe/Paris">CET (CEST)</option>
-                        <option value="Europe/Berlin">CET (CEST)</option>
-                        <option value="Asia/Tokyo">JST (JST)</option>
-                        <option value="Asia/Shanghai">CST (CST)</option>
-                        <option value="Asia/Kolkata">IST (IST)</option>
-                        <option value="Australia/Sydney">AEST (AEDT)</option>
-                      </select>
-                    </div>
+              <div className="card-header">
+                <h2 className="card-title">Preferences</h2>
+                <p className="text-sm text-muted">Customize your app experience</p>
+              </div>
+              <div className="card-content">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="form-group">
+                    <label className="form-label">Language</label>
+                    <select
+                      className="form-select"
+                      value={preferencesData.language}
+                      onChange={(e) => setPreferencesData({ ...preferencesData, language: e.target.value })}
+                    >
+                      {languages.map((lang) => (
+                        <option key={lang.code} value={lang.code}>
+                          {lang.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Date Format</label>
+                    <select
+                      className="form-select"
+                      value={preferencesData.dateFormat}
+                      onChange={(e) => setPreferencesData({ ...preferencesData, dateFormat: e.target.value })}
+                    >
+                      <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                      <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                      <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                      <option value="DD MMM YYYY">DD MMM YYYY</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Time Format</label>
+                    <select
+                      className="form-select"
+                      value={preferencesData.timeFormat}
+                      onChange={(e) => setPreferencesData({ ...preferencesData, timeFormat: e.target.value })}
+                    >
+                      <option value="12">12-hour (AM/PM)</option>
+                      <option value="24">24-hour</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Timezone</label>
+                    <select
+                      className="form-select"
+                      value={preferencesData.timezone}
+                      onChange={(e) => setPreferencesData({ ...preferencesData, timezone: e.target.value })}
+                    >
+                      {timezones.map((tz) => (
+                        <option key={tz} value={tz}>
+                          {tz.replace("_", " ")}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="flex justify-end"
-              >
+              </div>
+              <div className="card-footer">
                 <button
                   className="btn btn-primary"
-                  onClick={handlePreferencesSubmit}
+                  onClick={() => saveSettings("preferences", preferencesData)}
                   disabled={isLoading}
                 >
-                  <FiSave className="mr-2" />
-                  {isLoading ? "Saving..." : "Save Changes"}
+                  <FiSave className="w-4 h-4" />
+                  {isLoading ? "Saving..." : "Save Preferences"}
                 </button>
-              </motion.div>
+              </div>
             </>
           )}
 
+          {/* Notification Settings */}
           {activeSection === "notifications" && (
             <>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                className="bg-white rounded-lg shadow mb-6"
-              >
-                <div className="p-4 border-b">
-                  <h2 className="text-xl font-bold">Notification Settings</h2>
-                </div>
-                <div className="p-4">
-                  <div className="space-y-4">
-                    <div className="form-group">
-                      <label className="form-label">Email Notifications</label>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id="emailTransaction"
-                            checked={notificationData.emailNotifications.transactionReminders}
-                            onChange={(e) => setNotificationData({
-                              ...notificationData,
-                              emailNotifications: {
-                                ...notificationData.emailNotifications,
-                                transactionReminders: e.target.checked
+              <div className="card-header">
+                <h2 className="card-title">Notification Settings</h2>
+                <p className="text-sm text-muted">Manage how and when you receive notifications</p>
+              </div>
+              <div className="card-content">
+                <div className="space-y-6">
+                  {/* Email Notifications */}
+                  <div>
+                    <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+                      <FiMail className="w-5 h-5" />
+                      Email Notifications
+                    </h3>
+                    <div className="space-y-3">
+                      {Object.entries(notificationData.emailNotifications).map(([key, value]) => (
+                        <div key={key} className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium capitalize">{key.replace(/([A-Z])/g, " $1").trim()}</h4>
+                            <p className="text-sm text-muted">
+                              {key === "budgetAlerts" && "Get notified when you exceed budget limits"}
+                              {key === "monthlyReports" && "Receive monthly expense summaries"}
+                              {key === "transactionReminders" && "Reminders for recurring transactions"}
+                              {key === "securityAlerts" && "Important security notifications"}
+                              {key === "promotionalEmails" && "Updates about new features and tips"}
+                            </p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={value}
+                              onChange={(e) =>
+                                setNotificationData({
+                                  ...notificationData,
+                                  emailNotifications: {
+                                    ...notificationData.emailNotifications,
+                                    [key]: e.target.checked,
+                                  },
+                                })
                               }
-                            })}
-                          />
-                          <label htmlFor="emailTransaction">Transaction updates</label>
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          </label>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id="emailBudget"
-                            checked={notificationData.emailNotifications.budgetAlerts}
-                            onChange={(e) => setNotificationData({
-                              ...notificationData,
-                              emailNotifications: {
-                                ...notificationData.emailNotifications,
-                                budgetAlerts: e.target.checked
-                              }
-                            })}
-                          />
-                          <label htmlFor="emailBudget">Budget alerts</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id="emailTips"
-                            checked={notificationData.emailNotifications.promotionalEmails}
-                            onChange={(e) => setNotificationData({
-                              ...notificationData,
-                              emailNotifications: {
-                                ...notificationData.emailNotifications,
-                                promotionalEmails: e.target.checked
-                              }
-                            })}
-                          />
-                          <label htmlFor="emailTips">Saving tips and recommendations</label>
-                        </div>
-                      </div>
+                      ))}
                     </div>
-                    <div className="form-group">
-                      <label className="form-label">Push Notifications</label>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id="pushTransaction"
-                            checked={notificationData.pushNotifications.newTransactions}
-                            onChange={(e) => setNotificationData({
-                              ...notificationData,
-                              pushNotifications: {
-                                ...notificationData.pushNotifications,
-                                newTransactions: e.target.checked
+                  </div>
+
+                  {/* Push Notifications */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+                      <FiSmartphone className="w-5 h-5" />
+                      Push Notifications
+                    </h3>
+                    <div className="space-y-3">
+                      {Object.entries(notificationData.pushNotifications).map(([key, value]) => (
+                        <div key={key} className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium capitalize">{key.replace(/([A-Z])/g, " $1").trim()}</h4>
+                            <p className="text-sm text-muted">
+                              {key === "newTransactions" && "Instant notifications for new transactions"}
+                              {key === "budgetLimits" && "Alerts when approaching budget limits"}
+                              {key === "billReminders" && "Reminders for upcoming bills"}
+                              {key === "weeklyDigest" && "Weekly summary of your expenses"}
+                            </p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={value}
+                              onChange={(e) =>
+                                setNotificationData({
+                                  ...notificationData,
+                                  pushNotifications: {
+                                    ...notificationData.pushNotifications,
+                                    [key]: e.target.checked,
+                                  },
+                                })
                               }
-                            })}
-                          />
-                          <label htmlFor="pushTransaction">New transactions</label>
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          </label>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id="pushBudget"
-                            checked={notificationData.pushNotifications.budgetLimits}
-                            onChange={(e) => setNotificationData({
-                              ...notificationData,
-                              pushNotifications: {
-                                ...notificationData.pushNotifications,
-                                budgetLimits: e.target.checked
-                              }
-                            })}
-                          />
-                          <label htmlFor="pushBudget">Budget alerts</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id="pushBill"
-                            checked={notificationData.pushNotifications.billReminders}
-                            onChange={(e) => setNotificationData({
-                              ...notificationData,
-                              pushNotifications: {
-                                ...notificationData.pushNotifications,
-                                billReminders: e.target.checked
-                              }
-                            })}
-                          />
-                          <label htmlFor="pushBill">Bill reminders</label>
-                        </div>
-                      </div>
+                      ))}
                     </div>
-                    <div className="form-group">
-                      <label className="form-label">Notification Frequency</label>
-                      <select
-                        className="form-select"
-                        value={notificationData.notificationFrequency}
-                        onChange={(e) => setNotificationData({ ...notificationData, notificationFrequency: e.target.value })}
-                      >
-                        <option value="immediate">Immediate</option>
-                        <option value="daily">Daily Digest</option>
-                        <option value="weekly">Weekly Digest</option>
-                      </select>
+                  </div>
+
+                  {/* Notification Preferences */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-medium mb-4">Notification Preferences</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="form-group">
+                        <label className="form-label">Notification Frequency</label>
+                        <select
+                          className="form-select"
+                          value={notificationData.notificationFrequency}
+                          onChange={(e) =>
+                            setNotificationData({ ...notificationData, notificationFrequency: e.target.value })
+                          }
+                        >
+                          <option value="immediate">Immediate</option>
+                          <option value="daily">Daily Digest</option>
+                          <option value="weekly">Weekly Digest</option>
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="form-label">Quiet Hours</label>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={notificationData.quietHours.enabled}
+                              onChange={(e) =>
+                                setNotificationData({
+                                  ...notificationData,
+                                  quietHours: {
+                                    ...notificationData.quietHours,
+                                    enabled: e.target.checked,
+                                  },
+                                })
+                              }
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          </label>
+                        </div>
+                        {notificationData.quietHours.enabled && (
+                          <div className="grid grid-cols-2 gap-2">
+                            <input
+                              type="time"
+                              className="form-input"
+                              value={notificationData.quietHours.startTime}
+                              onChange={(e) =>
+                                setNotificationData({
+                                  ...notificationData,
+                                  quietHours: {
+                                    ...notificationData.quietHours,
+                                    startTime: e.target.value,
+                                  },
+                                })
+                              }
+                            />
+                            <input
+                              type="time"
+                              className="form-input"
+                              value={notificationData.quietHours.endTime}
+                              onChange={(e) =>
+                                setNotificationData({
+                                  ...notificationData,
+                                  quietHours: {
+                                    ...notificationData.quietHours,
+                                    endTime: e.target.value,
+                                  },
+                                })
+                              }
+                            />
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="flex justify-end"
-              >
+              </div>
+              <div className="card-footer">
                 <button
                   className="btn btn-primary"
-                  onClick={handleNotificationsSubmit}
+                  onClick={() => saveSettings("notifications", notificationData)}
                   disabled={isLoading}
                 >
-                  <FiSave className="mr-2" />
-                  {isLoading ? "Saving..." : "Save Changes"}
+                  <FiSave className="w-4 h-4" />
+                  {isLoading ? "Saving..." : "Save Notification Settings"}
                 </button>
-              </motion.div>
+              </div>
             </>
           )}
         </div>
       </div>
-
-      <div className="settings-section danger-zone">
-        <h2>Danger Zone</h2>
-        <button 
-          className="btn-danger"
-          onClick={() => setShowDeleteModal(true)}
-        >
-          Delete Account
-        </button>
-      </div>
-
-      {/* Delete Account Modal */}
-      {showDeleteModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>Delete Account</h3>
-            <p className="warning-text">
-              Warning: This action cannot be undone. All your data will be permanently deleted.
-            </p>
-            <p>
-              To confirm deletion, please type "DELETE" in the box below:
-            </p>
-            <input
-              type="text"
-              value={deleteConfirmation}
-              onChange={(e) => setDeleteConfirmation(e.target.value)}
-              placeholder="Type DELETE to confirm"
-              className="delete-confirmation-input"
-            />
-            <div className="modal-actions">
-              <button
-                className="btn-secondary"
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setDeleteConfirmation('');
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn-danger"
-                onClick={handleDeleteAccount}
-                disabled={deleteConfirmation !== 'DELETE'}
-              >
-                Delete Account
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </motion.div>
+    </div>
   )
 }

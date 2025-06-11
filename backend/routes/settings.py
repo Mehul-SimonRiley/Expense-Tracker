@@ -6,6 +6,7 @@ from extensions import db
 import logging
 import os
 from werkzeug.utils import secure_filename
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 settings_bp = Blueprint("settings", __name__)
@@ -45,8 +46,13 @@ def upload_profile_picture():
                 
             file.save(file_path)
             
-            # Update user's profile picture path
-            user.profile_picture = file_path
+            # Update user's profile picture path in settings
+            settings = Settings.query.filter_by(user_id=user_id).first()
+            if not settings:
+                settings = Settings(user_id=user_id)
+                db.session.add(settings)
+            
+            settings.profile_picture = file_path
             db.session.commit()
             
             return jsonify({
@@ -60,9 +66,8 @@ def upload_profile_picture():
         logger.error(f"Error uploading profile picture: {str(e)}")
         return jsonify({"error": "Failed to upload profile picture"}), 500
 
-# Update Profile
+# Update Profile Settings
 @settings_bp.route("/profile", methods=["PUT"])
-@settings_bp.route("/profile/", methods=["PUT"])
 @jwt_required()
 def update_profile():
     try:
@@ -70,30 +75,28 @@ def update_profile():
         logger.info(f"Updating profile for user {user_id}")
         
         data = request.json
-        user = User.query.get(user_id)
+        settings = Settings.query.filter_by(user_id=user_id).first()
         
-        if not user:
-            return jsonify({
-                "status": "error",
-                "message": "User not found"
-            }), 404
+        if not settings:
+            settings = Settings(user_id=user_id)
+            db.session.add(settings)
         
-        # Update only provided fields
-        if 'name' in data and data['name']:
-            user.name = data['name']
-        if 'email' in data and data['email']:
-            user.email = data['email']
-        if 'phone' in data and data['phone']:
-            user.phone = data['phone']
+        # Update profile fields
+        if 'bio' in data:
+            settings.bio = data['bio']
+        if 'date_of_birth' in data:
+            settings.date_of_birth = datetime.strptime(data['date_of_birth'], '%Y-%m-%d').date()
+        if 'occupation' in data:
+            settings.occupation = data['occupation']
+        if 'location' in data:
+            settings.location = data['location']
         
         db.session.commit()
         
         return jsonify({
             "status": "success",
             "message": "Profile updated successfully",
-            "data": {
-                "user": user.to_dict()
-            }
+            "data": settings.to_dict()
         })
     except Exception as e:
         logger.error(f"Error in update_profile: {str(e)}")
@@ -103,9 +106,46 @@ def update_profile():
             "message": "Failed to update profile"
         }), 500
 
+# Update Security Settings
+@settings_bp.route("/security", methods=["PUT"])
+@jwt_required()
+def update_security():
+    try:
+        user_id = get_jwt_identity()
+        logger.info(f"Updating security settings for user {user_id}")
+        
+        data = request.json
+        settings = Settings.query.filter_by(user_id=user_id).first()
+        
+        if not settings:
+            settings = Settings(user_id=user_id)
+            db.session.add(settings)
+        
+        # Update security fields
+        if 'two_factor_enabled' in data:
+            settings.two_factor_enabled = data['two_factor_enabled']
+        if 'login_notifications' in data:
+            settings.login_notifications = data['login_notifications']
+        if 'session_timeout' in data:
+            settings.session_timeout = data['session_timeout']
+        
+        db.session.commit()
+        
+        return jsonify({
+            "status": "success",
+            "message": "Security settings updated successfully",
+            "data": settings.to_dict()
+        })
+    except Exception as e:
+        logger.error(f"Error in update_security: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            "status": "error",
+            "message": "Failed to update security settings"
+        }), 500
+
 # Update Preferences
 @settings_bp.route("/preferences", methods=["PUT"])
-@settings_bp.route("/preferences/", methods=["PUT"])
 @jwt_required()
 def update_preferences():
     try:
@@ -119,22 +159,22 @@ def update_preferences():
             settings = Settings(user_id=user_id)
             db.session.add(settings)
         
-        # Update only provided fields
-        if 'theme' in data:
-            settings.theme = data['theme']
+        # Update preference fields
         if 'language' in data:
             settings.language = data['language']
         if 'date_format' in data:
             settings.date_format = data['date_format']
+        if 'time_format' in data:
+            settings.time_format = data['time_format']
+        if 'timezone' in data:
+            settings.timezone = data['timezone']
         
         db.session.commit()
         
         return jsonify({
             "status": "success",
             "message": "Preferences updated successfully",
-            "data": {
-                "settings": settings.to_dict()
-            }
+            "data": settings.to_dict()
         })
     except Exception as e:
         logger.error(f"Error in update_preferences: {str(e)}")
@@ -144,14 +184,13 @@ def update_preferences():
             "message": "Failed to update preferences"
         }), 500
 
-# Update Notifications
-@settings_bp.route("/notifications", methods=["PUT"])
-@settings_bp.route("/notifications/", methods=["PUT"])
+# Update Currency Settings
+@settings_bp.route("/currency", methods=["PUT"])
 @jwt_required()
-def update_notifications():
+def update_currency():
     try:
         user_id = get_jwt_identity()
-        logger.info(f"Updating notifications for user {user_id}")
+        logger.info(f"Updating currency settings for user {user_id}")
         
         data = request.json
         settings = Settings.query.filter_by(user_id=user_id).first()
@@ -160,20 +199,66 @@ def update_notifications():
             settings = Settings(user_id=user_id)
             db.session.add(settings)
         
-        # Update notification settings
+        # Update currency fields
+        if 'primary_currency' in data:
+            settings.primary_currency = data['primary_currency']
+        if 'currency_display' in data:
+            settings.currency_display = data['currency_display']
+        if 'decimal_separator' in data:
+            settings.decimal_separator = data['decimal_separator']
+        if 'thousands_separator' in data:
+            settings.thousands_separator = data['thousands_separator']
+        if 'decimal_places' in data:
+            settings.decimal_places = data['decimal_places']
+        if 'show_currency_symbol' in data:
+            settings.show_currency_symbol = data['show_currency_symbol']
+        
+        db.session.commit()
+        
+        return jsonify({
+            "status": "success",
+            "message": "Currency settings updated successfully",
+            "data": settings.to_dict()
+        })
+    except Exception as e:
+        logger.error(f"Error in update_currency: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            "status": "error",
+            "message": "Failed to update currency settings"
+        }), 500
+
+# Update Notification Settings
+@settings_bp.route("/notifications", methods=["PUT"])
+@jwt_required()
+def update_notifications():
+    try:
+        user_id = get_jwt_identity()
+        logger.info(f"Updating notification settings for user {user_id}")
+        
+        data = request.json
+        settings = Settings.query.filter_by(user_id=user_id).first()
+        
+        if not settings:
+            settings = Settings(user_id=user_id)
+            db.session.add(settings)
+        
+        # Update notification fields
         if 'email_notifications' in data:
             settings.email_notifications = data['email_notifications']
         if 'push_notifications' in data:
             settings.push_notifications = data['push_notifications']
+        if 'notification_frequency' in data:
+            settings.notification_frequency = data['notification_frequency']
+        if 'quiet_hours' in data:
+            settings.quiet_hours = data['quiet_hours']
         
         db.session.commit()
         
         return jsonify({
             "status": "success",
             "message": "Notification settings updated successfully",
-            "data": {
-                "settings": settings.to_dict()
-            }
+            "data": settings.to_dict()
         })
     except Exception as e:
         logger.error(f"Error in update_notifications: {str(e)}")
@@ -183,48 +268,7 @@ def update_notifications():
             "message": "Failed to update notification settings"
         }), 500
 
-# Data Backup
-@settings_bp.route("/backup", methods=["POST"])
-@settings_bp.route("/backup/", methods=["POST"])
-@jwt_required()
-def create_backup():
-    try:
-        user_id = get_jwt_identity()
-        # Simulate backup creation (replace with actual logic if needed)
-        return jsonify({"message": "Backup created successfully"}), 201
-    except Exception as e:
-        return jsonify({"error": "An error occurred while creating the backup.", "details": str(e)}), 500
-
-# Data Restore
-@settings_bp.route("/restore", methods=["POST"])
-@settings_bp.route("/restore/", methods=["POST"])
-@jwt_required()
-def restore_backup():
-    try:
-        user_id = get_jwt_identity()
-        # Simulate backup restoration (replace with actual logic if needed)
-        return jsonify({"message": "Backup restored successfully"}), 200
-    except Exception as e:
-        return jsonify({"error": "An error occurred while restoring the backup.", "details": str(e)}), 500
-
-# Delete Account
-@settings_bp.route("/account", methods=["DELETE"])
-@settings_bp.route("/account/", methods=["DELETE"])
-@jwt_required()
-def delete_account():
-    try:
-        user_id = get_jwt_identity()
-        user = User.query.get(user_id)
-        if not user:
-            return jsonify({"message": "User not found"}), 404
-
-        # Delete user account
-        db.session.delete(user)
-        db.session.commit()
-        return jsonify({"message": "Account deleted successfully"}), 200
-    except Exception as e:
-        return jsonify({"error": "An error occurred while deleting the account.", "details": str(e)}), 500
-
+# Get All Settings
 @settings_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_settings():
@@ -232,7 +276,6 @@ def get_settings():
         user_id = get_jwt_identity()
         logger.info(f"Fetching settings for user {user_id}")
         
-        # Get or create settings
         settings = Settings.query.filter_by(user_id=user_id).first()
         if not settings:
             logger.info(f"Creating default settings for user {user_id}")
@@ -251,43 +294,25 @@ def get_settings():
             "message": "Failed to fetch settings"
         }), 500
 
-@settings_bp.route('/', methods=['PUT'])
+# Delete Account
+@settings_bp.route("/account", methods=["DELETE"])
 @jwt_required()
-def update_settings():
+def delete_account():
     try:
         user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"message": "User not found"}), 404
+
+        # Delete user's settings
         settings = Settings.query.filter_by(user_id=user_id).first()
-        
-        if not settings:
-            settings = Settings(user_id=user_id)
-            db.session.add(settings)
-            
-        data = request.get_json()
-        
-        # Update fields
-        if 'theme' in data:
-            settings.theme = data['theme']
-        if 'language' in data:
-            settings.language = data['language']
-        if 'date_format' in data:
-            settings.date_format = data['date_format']
-        if 'start_of_week' in data:
-            settings.start_of_week = data['start_of_week']
-        if 'email_notifications' in data:
-            settings.email_notifications = data['email_notifications']
-        if 'push_notifications' in data:
-            settings.push_notifications = data['push_notifications']
-        if 'currency' in data:
-            settings.currency = data['currency']
-            
+        if settings:
+            db.session.delete(settings)
+
+        # Delete user account
+        db.session.delete(user)
         db.session.commit()
-        
-        return jsonify({
-            'message': 'Settings updated successfully',
-            'settings': settings.to_dict()
-        })
-        
+        return jsonify({"message": "Account deleted successfully"}), 200
     except Exception as e:
-        logger.error(f'Error updating settings: {str(e)}')
         db.session.rollback()
-        return jsonify({'error': 'Failed to update settings'}), 500
+        return jsonify({"error": "An error occurred while deleting the account.", "details": str(e)}), 500

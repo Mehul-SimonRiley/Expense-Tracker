@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { FiMenu, FiDollarSign, FiHome, FiGrid, FiPieChart, FiLogOut, FiCalendar, FiSettings, FiBarChart2 } from 'react-icons/fi';
 import DashboardTab from './tabs/DashboardTab';
 import CategoriesTab from './tabs/CategoriesTab';
@@ -36,13 +36,13 @@ const ProtectedRoute = ({ children }) => {
     return children;
 };
 
-const App = () => {
-    console.log('App component rendered');
+const AppContent = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [activeTab, setActiveTab] = useState('dashboard');
     const [user, setUser] = useState(null);
+    const navigate = useNavigate();
 
     // Define a stable error handler using useCallback
     const handleError = useCallback((error) => {
@@ -93,9 +93,15 @@ const App = () => {
     }, [user]);
 
     const handleLogout = () => {
-        authService.logout();
-        setIsAuthenticated(false);
-        setUser(null);
+        try {
+            authService.logout();
+            setIsAuthenticated(false);
+            setUser(null);
+            navigate('/login');
+        } catch (error) {
+            console.error('Logout error:', error);
+            handleError(error);
+        }
     };
 
     const handleUserUpdate = useCallback((updatedUser) => {
@@ -183,70 +189,76 @@ const App = () => {
     ];
 
     return (
+        <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route
+                path="/"
+                element={
+                    <ProtectedRoute>
+                        <div className="app">
+                            <header className="dashboard-header">
+                                <button className="menu-button" onClick={() => setSidebarOpen(!sidebarOpen)}>
+                                    <FiMenu />
+                                    <span className="sr-only">Toggle Menu</span>
+                                </button>
+                                <div className="logo" style={{ margin: '0 auto' }}>
+                                    <FiDollarSign className="logo-icon" />
+                                    <span className="logo-text">Traxpense</span>
+                                </div>
+                                <div className="header-actions">
+                                    <NotificationsDropdown />
+                                    <button
+                                        className="avatar-button"
+                                        onClick={() => setActiveTab('settings')}
+                                        title="Profile Settings"
+                                    >
+                                        <div className="avatar">
+                                            <div className="avatar-initials">
+                                                {getInitials(user) || "U"}
+                                            </div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </header>
+                            <div className="dashboard-content">
+                                <aside className={`sidebar ${sidebarOpen ? '' : 'closed'}`}>
+                                    <nav className="sidebar-nav">
+                                        {tabs.map((tab) => (
+                                            <button
+                                                key={tab.value}
+                                                className={`nav-item ${activeTab === tab.value ? 'active' : ''}`}
+                                                onClick={() => handleTabChange(tab.value)}
+                                            >
+                                                {tab.icon}
+                                                <span>{tab.label}</span>
+                                            </button>
+                                        ))}
+                                        <button className="nav-item" onClick={handleLogout}>
+                                            <FiLogOut />
+                                            <span>Logout</span>
+                                        </button>
+                                    </nav>
+                                </aside>
+                                <main className="main-content">
+                                    <div className="container mx-auto px-4 py-8">
+                                        {renderTabContent()}
+                                    </div>
+                                </main>
+                            </div>
+                        </div>
+                    </ProtectedRoute>
+                }
+            />
+        </Routes>
+    );
+};
+
+const App = () => {
+    return (
         <AuthProvider>
             <Router>
-                <Routes>
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/register" element={<RegisterPage />} />
-                    <Route
-                        path="/"
-                        element={
-                            <ProtectedRoute>
-                                <div className="app">
-                                    <header className="dashboard-header">
-                                        <button className="menu-button" onClick={() => setSidebarOpen(!sidebarOpen)}>
-                                            <FiMenu />
-                                            <span className="sr-only">Toggle Menu</span>
-                                        </button>
-                                        <div className="logo" style={{ margin: '0 auto' }}>
-                                            <FiDollarSign className="logo-icon" />
-                                            <span className="logo-text">Traxpense</span>
-                                        </div>
-                                        <div className="header-actions">
-                                            <NotificationsDropdown />
-                                            <button
-                                                className="avatar-button"
-                                                onClick={() => setActiveTab('settings')}
-                                                title="Profile Settings"
-                                            >
-                                                <div className="avatar">
-                                                    <div className="avatar-initials">
-                                                        {getInitials(user) || "U"}
-                                                    </div>
-                                                </div>
-                                            </button>
-                                        </div>
-                                    </header>
-                                    <div className="dashboard-content">
-                                        <aside className={`sidebar ${sidebarOpen ? '' : 'closed'}`}>
-                                            <nav className="sidebar-nav">
-                                                {tabs.map((tab) => (
-                                                    <button
-                                                        key={tab.value}
-                                                        className={`nav-item ${activeTab === tab.value ? 'active' : ''}`}
-                                                        onClick={() => handleTabChange(tab.value)}
-                                                    >
-                                                        {tab.icon}
-                                                        <span>{tab.label}</span>
-                                                    </button>
-                                                ))}
-                                                <button className="nav-item" onClick={handleLogout}>
-                                                    <FiLogOut />
-                                                    <span>Logout</span>
-                                                </button>
-                                            </nav>
-                                        </aside>
-                                        <main className="main-content">
-                                            <div className="container mx-auto px-4 py-8">
-                                                {renderTabContent()}
-                                            </div>
-                                        </main>
-                                    </div>
-                                </div>
-                            </ProtectedRoute>
-                        }
-                    />
-                </Routes>
+                <AppContent />
             </Router>
         </AuthProvider>
     );

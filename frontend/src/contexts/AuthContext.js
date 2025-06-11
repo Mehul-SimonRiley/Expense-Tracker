@@ -11,9 +11,9 @@ export const AuthProvider = ({ children }) => {
         // Check if user is already logged in
         const checkAuth = async () => {
             try {
-                const currentUser = await authService.getCurrentUser();
-                if (currentUser) {
-                    setUser(currentUser);
+                const storedUser = localStorage.getItem('user');
+                if (storedUser) {
+                    setUser(JSON.parse(storedUser));
                 }
             } catch (error) {
                 console.error('Error checking authentication:', error);
@@ -27,12 +27,9 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            const response = await authService.login(email, password);
-            if (response.user) {
-                setUser(response.user);
-                return response.user;
-            }
-            throw new Error('No user data received from server');
+            const user = await authService.login(email, password);
+            setUser(user);
+            return user;
         } catch (error) {
             console.error('Login error:', error);
             throw error;

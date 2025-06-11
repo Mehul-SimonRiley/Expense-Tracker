@@ -1,87 +1,261 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { FiSave } from "react-icons/fi"
-import { settingsService } from "../services/api";
-import { authService } from "../services/auth";
-import LoadingSpinner from '../components/LoadingSpinner'
+import { FiSave, FiUser, FiSettings, FiBell, FiDollarSign, FiShield, FiEye, FiEyeOff, FiCamera, FiMail, FiSmartphone, FiCheck, FiX } from "react-icons/fi"
+import settingsService from "../services/settingsService"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import LoadingSpinner from "../components/LoadingSpinner"
+import "./SettingsTab.css";
 
-const SettingsTab = () => {
-  const { user, updateUser } = useAuth();
+
+export default function SettingsTab({ onError }) {
+  const { user, updateUser, logout } = useAuth();
   const [activeSection, setActiveSection] = useState("profile")
-  const [profileData, setProfileData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-  });
-
-  const [preferencesData, setPreferencesData] = useState({
-    theme: "light",
-    language: "en",
-    date_format: "MM/DD/YYYY"
-  });
-
-  const [notificationsData, setNotificationsData] = useState({
-    email_notifications: true,
-    push_notifications: true,
-  });
-
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(null); // 'success', 'error', or null
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const navigate = useNavigate();
 
+  // Profile Settings State
+  const [profileData, setProfileData] = useState({
+    firstName: user?.name?.split(" ")[0] || "",
+    lastName: user?.name?.split(" ")[1] || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    avatar: user?.profile_picture || "/placeholder.svg?height=80&width=80",
+    bio: "",
+    dateOfBirth: "",
+    occupation: "",
+    location: "",
+  });
+
+  // Security Settings State
+  const [securityData, setSecurityData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+    twoFactorEnabled: false,
+    loginNotifications: true,
+    sessionTimeout: "30", // minutes
+  });
+
+  // Preferences State
+  const [preferencesData, setPreferencesData] = useState({
+    language: "en",
+    dateFormat: "MM/DD/YYYY",
+    timeFormat: "12", // 12 or 24
+    timezone: "America/New_York",
+  });
+
+  // Currency Settings State
+  const [currencyData, setCurrencyData] = useState({
+    primaryCurrency: "USD",
+    currencyDisplay: "symbol", // symbol, code, name
+    decimalSeparator: ".",
+    thousandsSeparator: ",",
+    decimalPlaces: 2,
+    showCurrencySymbol: true,
+  });
+
+  // Notification Settings State
+  const [notificationData, setNotificationData] = useState({
+    emailNotifications: {
+      budgetAlerts: true,
+      monthlyReports: true,
+      transactionReminders: false,
+      securityAlerts: true,
+      promotionalEmails: false,
+    },
+    pushNotifications: {
+      newTransactions: true,
+      budgetLimits: true,
+      billReminders: true,
+      weeklyDigest: false,
+    },
+    notificationFrequency: "immediate", // immediate, daily, weekly
+    quietHours: {
+      enabled: true,
+      startTime: "22:00",
+      endTime: "08:00",
+    },
+  });
+
+  // Fetch settings on component mount
   useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        // Load user profile data
-        if (user) {
-          setProfileData({
-            name: user.name || "",
-            email: user.email || "",
-            phone: user.phone || "",
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      setIsLoading(true);
+      const response = await settingsService.getSettings();
+      const settings = response.data;
+
+      // Update profile data
+      setProfileData({
+        firstName: settings.name?.split(' ')[0] || '',
+        lastName: settings.name?.split(' ')[1] || '',
+        email: settings.email || '',
+        phone: settings.phone || '',
+        avatar: settings.profile_picture || '',
+        bio: settings.bio || '',
+        dateOfBirth: settings.date_of_birth || '',
+        occupation: settings.occupation || '',
+        location: settings.location || '',
+      });
+
+      // Update security data
+      setSecurityData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+        twoFactorEnabled: settings.two_factor_enabled || false,
+        loginNotifications: settings.login_notifications || true,
+        sessionTimeout: settings.session_timeout?.toString() || '30',
+      });
+
+      // Update preferences data
+      setPreferencesData({
+        language: settings.language || 'en',
+        dateFormat: settings.date_format || 'MM/DD/YYYY',
+        timeFormat: settings.time_format || '12',
+        timezone: settings.timezone || 'America/New_York',
+      });
+
+      // Update currency data
+      setCurrencyData({
+        primaryCurrency: settings.primary_currency || 'USD',
+        currencyDisplay: settings.currency_display || 'symbol',
+        decimalSeparator: settings.decimal_separator || '.',
+        thousandsSeparator: settings.thousands_separator || ',',
+        decimalPlaces: settings.decimal_places || 2,
+        showCurrencySymbol: settings.show_currency_symbol || true,
+      });
+
+      // Update notification data
+      setNotificationData({
+        emailNotifications: settings.email_notifications || {
+          budgetAlerts: true,
+          monthlyReports: true,
+          transactionReminders: false,
+          securityAlerts: true,
+          promotionalEmails: false,
+        },
+        pushNotifications: settings.push_notifications || {
+          newTransactions: true,
+          budgetLimits: true,
+          billReminders: true,
+          weeklyDigest: false,
+        },
+        notificationFrequency: settings.notification_frequency || 'immediate',
+        quietHours: settings.quiet_hours || {
+          enabled: true,
+          startTime: '22:00',
+          endTime: '08:00',
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+      if (onError) onError('Failed to load settings');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Save settings function
+  const saveSettings = async (section, data) => {
+    try {
+      setIsLoading(true);
+      setSaveStatus(null);
+
+      let response;
+      switch (section) {
+        case 'profile':
+          response = await settingsService.updateProfile({
+            name: `${data.firstName} ${data.lastName}`,
+            email: data.email,
+            phone: data.phone,
+            bio: data.bio,
+            date_of_birth: data.dateOfBirth,
+            occupation: data.occupation,
+            location: data.location,
           });
-        } else {
-          const currentUser = await authService.getCurrentUser();
-          if (currentUser) {
-            setProfileData({
-              name: currentUser.name || "",
-              email: currentUser.email || "",
-              phone: currentUser.phone || "",
-            });
-          }
-        }
-
-        // Load preferences data
-        try {
-          const response = await settingsService.getSettings();
-          if (response.data) {
-            setPreferencesData({
-              theme: response.data.theme || "light",
-              language: response.data.language || "en",
-              date_format: response.data.date_format || "MM/DD/YYYY"
-            });
-            setNotificationsData({
-              email_notifications: response.data.email_notifications ?? true,
-              push_notifications: response.data.push_notifications ?? true
-            });
-          }
-        } catch (error) {
-          console.error("Error loading settings:", error);
-          // Don't throw the error, just log it
-        }
-      } catch (error) {
-        console.error("Error loading user data:", error);
-        setError("Failed to load settings. Please try again.");
-      } finally {
-        setIsLoading(false);
+          break;
+        case 'security':
+          response = await settingsService.updateSecurity({
+            two_factor_enabled: data.twoFactorEnabled,
+            login_notifications: data.loginNotifications,
+            session_timeout: parseInt(data.sessionTimeout),
+          });
+          break;
+        case 'preferences':
+          response = await settingsService.updatePreferences({
+            language: data.language,
+            date_format: data.dateFormat,
+            time_format: data.timeFormat,
+            timezone: data.timezone,
+          });
+          break;
+        case 'currency':
+          response = await settingsService.updateCurrency({
+            primary_currency: data.primaryCurrency,
+            currency_display: data.currencyDisplay,
+            decimal_separator: data.decimalSeparator,
+            thousands_separator: data.thousandsSeparator,
+            decimal_places: data.decimalPlaces,
+            show_currency_symbol: data.showCurrencySymbol,
+          });
+          break;
+        case 'notifications':
+          response = await settingsService.updateNotifications({
+            email_notifications: data.emailNotifications,
+            push_notifications: data.pushNotifications,
+            notification_frequency: data.notificationFrequency,
+            quiet_hours: data.quietHours,
+          });
+          break;
+        default:
+          throw new Error('Invalid section');
       }
-    };
 
-    loadUserData();
-  }, [user]);
+      setSaveStatus('success');
+      setTimeout(() => setSaveStatus(null), 3000);
+    } catch (error) {
+      console.error(`Error saving ${section} settings:`, error);
+      setSaveStatus('error');
+      if (onError) onError(`Failed to save ${section} settings`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle avatar upload
+  const handleAvatarUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      setIsLoading(true);
+      const response = await settingsService.uploadProfilePicture(file);
+      setProfileData({ ...profileData, avatar: response.profile_picture });
+      setSaveStatus('success');
+      setTimeout(() => setSaveStatus(null), 3000);
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
+      setSaveStatus('error');
+      if (onError) onError('Failed to upload profile picture');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Helper to get initials from name or email
   const getInitials = (user) => {
@@ -113,9 +287,25 @@ const SettingsTab = () => {
 
   const handleNotificationsChange = (e) => {
     const { name, checked } = e.target;
-    setNotificationsData(prev => ({
+    setNotificationData(prev => ({
       ...prev,
       [name]: checked
+    }));
+  };
+
+  const handleSecurityChange = (e) => {
+    const { name, value } = e.target;
+    setSecurityData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleCurrencyChange = (e) => {
+    const { name, value } = e.target;
+    setCurrencyData(prev => ({
+      ...prev,
+      [name]: value
     }));
   };
 
@@ -123,6 +313,7 @@ const SettingsTab = () => {
     e.preventDefault();
     try {
       setError(null);
+      await saveSettings('profile', profileData);
       const updatedUser = await settingsService.updateProfile(profileData);
       if (updatedUser) {
         updateUser(updatedUser);
@@ -138,7 +329,7 @@ const SettingsTab = () => {
     e.preventDefault();
     try {
       setError(null);
-      await settingsService.updatePreferences(preferencesData);
+      await saveSettings('preferences', preferencesData);
       alert('Preferences updated successfully!');
     } catch (err) {
       console.error('Error updating preferences:', err);
@@ -150,7 +341,7 @@ const SettingsTab = () => {
     e.preventDefault();
     try {
       setError(null);
-      await settingsService.updateNotifications(notificationsData);
+      await saveSettings('notifications', notificationData);
       alert('Notification settings updated successfully!');
     } catch (err) {
       console.error('Error updating notifications:', err);
@@ -158,15 +349,50 @@ const SettingsTab = () => {
     }
   };
 
+  const handleSecuritySubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setError(null);
+      await saveSettings('security', securityData);
+      alert('Security settings updated successfully!');
+    } catch (err) {
+      console.error('Error updating security:', err);
+      setError('Failed to update security settings. Please try again.');
+    }
+  };
+
+  const handleCurrencySubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setError(null);
+      await saveSettings('currency', currencyData);
+      alert('Currency settings updated successfully!');
+    } catch (err) {
+      console.error('Error updating currency:', err);
+      setError('Failed to update currency settings. Please try again.');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation !== 'DELETE') {
+      return;
+    }
+
+    try {
+      await settingsService.deleteAccount();
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      setError('Failed to delete account. Please try again.');
+    }
+  };
+
   if (isLoading) {
     return (
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex justify-center items-center h-64"
-      >
-        <LoadingSpinner text="Loading settings..." />
-      </motion.div>
+      <div className="loading-overlay">
+        <LoadingSpinner />
+      </div>
     )
   }
 
@@ -240,8 +466,8 @@ const SettingsTab = () => {
                       <input
                         type="text"
                         className="form-input"
-                        value={profileData.name}
-                        onChange={handleProfileChange}
+                        value={profileData.firstName}
+                        onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
                       />
                     </div>
                     <div className="form-group">
@@ -250,7 +476,7 @@ const SettingsTab = () => {
                         type="email"
                         className="form-input"
                         value={profileData.email}
-                        onChange={handleProfileChange}
+                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
                       />
                     </div>
                     <div className="form-group">
@@ -259,7 +485,7 @@ const SettingsTab = () => {
                         type="tel"
                         className="form-input"
                         value={profileData.phone}
-                        onChange={handleProfileChange}
+                        onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
                       />
                     </div>
                   </div>
@@ -297,23 +523,11 @@ const SettingsTab = () => {
                 <div className="p-4">
                   <div className="grid grid-cols-1 gap-4">
                     <div className="form-group">
-                      <label className="form-label">Theme</label>
-                      <select
-                        className="form-select"
-                        value={preferencesData.theme}
-                        onChange={handlePreferencesChange}
-                      >
-                        <option value="light">Light</option>
-                        <option value="dark">Dark</option>
-                        <option value="system">System Default</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
                       <label className="form-label">Language</label>
                       <select
                         className="form-select"
                         value={preferencesData.language}
-                        onChange={handlePreferencesChange}
+                        onChange={(e) => setPreferencesData({ ...preferencesData, language: e.target.value })}
                       >
                         <option value="en">English</option>
                         <option value="hi">Hindi</option>
@@ -326,12 +540,43 @@ const SettingsTab = () => {
                       <label className="form-label">Date Format</label>
                       <select
                         className="form-select"
-                        value={preferencesData.date_format}
-                        onChange={handlePreferencesChange}
+                        value={preferencesData.dateFormat}
+                        onChange={(e) => setPreferencesData({ ...preferencesData, dateFormat: e.target.value })}
                       >
-                        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
                         <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
                         <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Time Format</label>
+                      <select
+                        className="form-select"
+                        value={preferencesData.timeFormat}
+                        onChange={(e) => setPreferencesData({ ...preferencesData, timeFormat: e.target.value })}
+                      >
+                        <option value="12">12-hour (AM/PM)</option>
+                        <option value="24">24-hour</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Timezone</label>
+                      <select
+                        className="form-select"
+                        value={preferencesData.timezone}
+                        onChange={(e) => setPreferencesData({ ...preferencesData, timezone: e.target.value })}
+                      >
+                        <option value="America/New_York">Eastern Time (ET)</option>
+                        <option value="America/Chicago">Central Time (CT)</option>
+                        <option value="America/Denver">Mountain Time (MT)</option>
+                        <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                        <option value="Europe/London">GMT (BST)</option>
+                        <option value="Europe/Paris">CET (CEST)</option>
+                        <option value="Europe/Berlin">CET (CEST)</option>
+                        <option value="Asia/Tokyo">JST (JST)</option>
+                        <option value="Asia/Shanghai">CST (CST)</option>
+                        <option value="Asia/Kolkata">IST (IST)</option>
+                        <option value="Australia/Sydney">AEST (AEDT)</option>
                       </select>
                     </div>
                   </div>
@@ -375,8 +620,14 @@ const SettingsTab = () => {
                           <input
                             type="checkbox"
                             id="emailTransaction"
-                            checked={notificationsData.email_notifications}
-                            onChange={handleNotificationsChange}
+                            checked={notificationData.emailNotifications.transactionReminders}
+                            onChange={(e) => setNotificationData({
+                              ...notificationData,
+                              emailNotifications: {
+                                ...notificationData.emailNotifications,
+                                transactionReminders: e.target.checked
+                              }
+                            })}
                           />
                           <label htmlFor="emailTransaction">Transaction updates</label>
                         </div>
@@ -384,8 +635,14 @@ const SettingsTab = () => {
                           <input
                             type="checkbox"
                             id="emailBudget"
-                            checked={notificationsData.email_notifications}
-                            onChange={handleNotificationsChange}
+                            checked={notificationData.emailNotifications.budgetAlerts}
+                            onChange={(e) => setNotificationData({
+                              ...notificationData,
+                              emailNotifications: {
+                                ...notificationData.emailNotifications,
+                                budgetAlerts: e.target.checked
+                              }
+                            })}
                           />
                           <label htmlFor="emailBudget">Budget alerts</label>
                         </div>
@@ -393,8 +650,14 @@ const SettingsTab = () => {
                           <input
                             type="checkbox"
                             id="emailTips"
-                            checked={notificationsData.email_notifications}
-                            onChange={handleNotificationsChange}
+                            checked={notificationData.emailNotifications.promotionalEmails}
+                            onChange={(e) => setNotificationData({
+                              ...notificationData,
+                              emailNotifications: {
+                                ...notificationData.emailNotifications,
+                                promotionalEmails: e.target.checked
+                              }
+                            })}
                           />
                           <label htmlFor="emailTips">Saving tips and recommendations</label>
                         </div>
@@ -407,8 +670,14 @@ const SettingsTab = () => {
                           <input
                             type="checkbox"
                             id="pushTransaction"
-                            checked={notificationsData.push_notifications}
-                            onChange={handleNotificationsChange}
+                            checked={notificationData.pushNotifications.newTransactions}
+                            onChange={(e) => setNotificationData({
+                              ...notificationData,
+                              pushNotifications: {
+                                ...notificationData.pushNotifications,
+                                newTransactions: e.target.checked
+                              }
+                            })}
                           />
                           <label htmlFor="pushTransaction">New transactions</label>
                         </div>
@@ -416,8 +685,14 @@ const SettingsTab = () => {
                           <input
                             type="checkbox"
                             id="pushBudget"
-                            checked={notificationsData.push_notifications}
-                            onChange={handleNotificationsChange}
+                            checked={notificationData.pushNotifications.budgetLimits}
+                            onChange={(e) => setNotificationData({
+                              ...notificationData,
+                              pushNotifications: {
+                                ...notificationData.pushNotifications,
+                                budgetLimits: e.target.checked
+                              }
+                            })}
                           />
                           <label htmlFor="pushBudget">Budget alerts</label>
                         </div>
@@ -425,8 +700,14 @@ const SettingsTab = () => {
                           <input
                             type="checkbox"
                             id="pushBill"
-                            checked={notificationsData.push_notifications}
-                            onChange={handleNotificationsChange}
+                            checked={notificationData.pushNotifications.billReminders}
+                            onChange={(e) => setNotificationData({
+                              ...notificationData,
+                              pushNotifications: {
+                                ...notificationData.pushNotifications,
+                                billReminders: e.target.checked
+                              }
+                            })}
                           />
                           <label htmlFor="pushBill">Bill reminders</label>
                         </div>
@@ -434,10 +715,14 @@ const SettingsTab = () => {
                     </div>
                     <div className="form-group">
                       <label className="form-label">Notification Frequency</label>
-                      <select className="form-select">
-                        <option>Immediately</option>
-                        <option>Daily Digest</option>
-                        <option>Weekly Digest</option>
+                      <select
+                        className="form-select"
+                        value={notificationData.notificationFrequency}
+                        onChange={(e) => setNotificationData({ ...notificationData, notificationFrequency: e.target.value })}
+                      >
+                        <option value="immediate">Immediate</option>
+                        <option value="daily">Daily Digest</option>
+                        <option value="weekly">Weekly Digest</option>
                       </select>
                     </div>
                   </div>
@@ -462,8 +747,56 @@ const SettingsTab = () => {
           )}
         </div>
       </div>
+
+      <div className="settings-section danger-zone">
+        <h2>Danger Zone</h2>
+        <button 
+          className="btn-danger"
+          onClick={() => setShowDeleteModal(true)}
+        >
+          Delete Account
+        </button>
+      </div>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Delete Account</h3>
+            <p className="warning-text">
+              Warning: This action cannot be undone. All your data will be permanently deleted.
+            </p>
+            <p>
+              To confirm deletion, please type "DELETE" in the box below:
+            </p>
+            <input
+              type="text"
+              value={deleteConfirmation}
+              onChange={(e) => setDeleteConfirmation(e.target.value)}
+              placeholder="Type DELETE to confirm"
+              className="delete-confirmation-input"
+            />
+            <div className="modal-actions">
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirmation('');
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-danger"
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirmation !== 'DELETE'}
+              >
+                Delete Account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   )
 }
-
-export default SettingsTab;

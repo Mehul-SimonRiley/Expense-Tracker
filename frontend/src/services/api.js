@@ -390,8 +390,14 @@ export const settingsService = {
         return api.post("/settings/restore");
     },
 
-    deleteAccount: async () => {
-        return api.delete("/settings/account");
+    async deleteAccount() {
+        try {
+            const response = await api.delete('/settings/account');
+            return response.data;
+        } catch (error) {
+            console.error('Delete account error:', error);
+            throw error;
+        }
     }
 };
 
@@ -402,12 +408,24 @@ export const authService = {
             const response = await api.post('/auth/login', { email, password });
             const { access_token, refresh_token, user } = response.data;
             
+            if (!user) {
+                throw new Error('No user data received from server');
+            }
+            
+            // Store tokens and user data
             localStorage.setItem('accessToken', access_token);
             localStorage.setItem('refreshToken', refresh_token);
+            localStorage.setItem('user', JSON.stringify(user));
             
-            return { user };
+            // Update default auth header
+            api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+            
+            return user;
         } catch (error) {
             console.error('Login error:', error);
+            if (error.response) {
+                throw new Error(error.response.data.message || 'Login failed');
+            }
             throw error;
         }
     },
@@ -415,21 +433,32 @@ export const authService = {
     async register(name, email, password) {
         try {
             const response = await api.post('/auth/register', { name, email, password });
-            const { access_token, refresh_token, user } = response.data;
-            
-            localStorage.setItem('accessToken', access_token);
-            localStorage.setItem('refreshToken', refresh_token);
-            
-            return { user };
+            return response.data;
         } catch (error) {
             console.error('Registration error:', error);
+            if (error.response) {
+                throw new Error(error.response.data.message || 'Registration failed');
+            }
             throw error;
         }
     },
 
     logout() {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        try {
+            // Clear all auth data
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
+            
+            // Remove auth header
+            delete api.defaults.headers.common['Authorization'];
+            
+            // Clear any other app state if needed
+            window.location.href = '/login';
+        } catch (error) {
+            console.error('Logout error:', error);
+            throw error;
+        }
     },
 
     async getCurrentUser() {
@@ -439,6 +468,12 @@ export const authService = {
         } catch (error) {
             console.error('Get current user error:', error);
             throw error;
+        }
+    },
+
+    updateUser(userData) {
+        if (userData) {
+            localStorage.setItem('user', JSON.stringify(userData));
         }
     }
 };

@@ -13,6 +13,11 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
     phone = db.Column(db.String(20))
+    bio = db.Column(db.Text)
+    date_of_birth = db.Column(db.Date)
+    occupation = db.Column(db.String(100))
+    location = db.Column(db.String(100))
+    profile_picture = db.Column(db.String(200))
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -44,6 +49,11 @@ class User(db.Model):
             'name': self.name,
             'email': self.email,
             'phone': self.phone,
+            'bio': self.bio,
+            'date_of_birth': self.date_of_birth.isoformat() if self.date_of_birth else None,
+            'occupation': self.occupation,
+            'location': self.location,
+            'profile_picture': self.profile_picture,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

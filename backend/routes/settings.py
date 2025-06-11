@@ -46,13 +46,8 @@ def upload_profile_picture():
                 
             file.save(file_path)
             
-            # Update user's profile picture path in settings
-            settings = Settings.query.filter_by(user_id=user_id).first()
-            if not settings:
-                settings = Settings(user_id=user_id)
-                db.session.add(settings)
-            
-            settings.profile_picture = file_path
+            # Update user's profile picture path
+            user.profile_picture = file_path
             db.session.commit()
             
             return jsonify({
@@ -75,28 +70,33 @@ def update_profile():
         logger.info(f"Updating profile for user {user_id}")
         
         data = request.json
-        settings = Settings.query.filter_by(user_id=user_id).first()
+        user = User.query.get(user_id)
         
-        if not settings:
-            settings = Settings(user_id=user_id)
-            db.session.add(settings)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
         
         # Update profile fields
+        if 'name' in data:
+            user.name = data['name']
+        if 'email' in data:
+            user.email = data['email']
+        if 'phone' in data:
+            user.phone = data['phone']
         if 'bio' in data:
-            settings.bio = data['bio']
+            user.bio = data['bio']
         if 'date_of_birth' in data:
-            settings.date_of_birth = datetime.strptime(data['date_of_birth'], '%Y-%m-%d').date()
+            user.date_of_birth = datetime.strptime(data['date_of_birth'], '%Y-%m-%d').date()
         if 'occupation' in data:
-            settings.occupation = data['occupation']
+            user.occupation = data['occupation']
         if 'location' in data:
-            settings.location = data['location']
+            user.location = data['location']
         
         db.session.commit()
         
         return jsonify({
             "status": "success",
             "message": "Profile updated successfully",
-            "data": settings.to_dict()
+            "data": user.to_dict()
         })
     except Exception as e:
         logger.error(f"Error in update_profile: {str(e)}")
@@ -276,6 +276,10 @@ def get_settings():
         user_id = get_jwt_identity()
         logger.info(f"Fetching settings for user {user_id}")
         
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
         settings = Settings.query.filter_by(user_id=user_id).first()
         if not settings:
             logger.info(f"Creating default settings for user {user_id}")
@@ -283,9 +287,15 @@ def get_settings():
             db.session.add(settings)
             db.session.commit()
         
+        # Combine user profile data with settings
+        response_data = {
+            **user.to_dict(),
+            **settings.to_dict()
+        }
+        
         return jsonify({
             "status": "success",
-            "data": settings.to_dict()
+            "data": response_data
         })
     except Exception as e:
         logger.error(f"Error in get_settings: {str(e)}")

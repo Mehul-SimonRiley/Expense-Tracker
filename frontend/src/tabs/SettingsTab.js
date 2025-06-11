@@ -6,8 +6,10 @@ import { settingsService } from "../services/api";
 import { authService } from "../services/auth";
 import LoadingSpinner from '../components/LoadingSpinner'
 import { motion, AnimatePresence } from "framer-motion"
+import { useAuth } from '../contexts/AuthContext';
 
-export default function SettingsTab({ user }) {
+const SettingsTab = () => {
+  const { user, updateUser } = useAuth();
   const [activeSection, setActiveSection] = useState("profile")
   const [profileData, setProfileData] = useState({
     name: "",
@@ -18,8 +20,7 @@ export default function SettingsTab({ user }) {
   const [preferencesData, setPreferencesData] = useState({
     theme: "light",
     language: "en",
-    date_format: "YYYY-MM-DD",
-    start_of_week: "Monday",
+    date_format: "MM/DD/YYYY"
   });
 
   const [notificationsData, setNotificationsData] = useState({
@@ -27,29 +28,22 @@ export default function SettingsTab({ user }) {
     push_notifications: true,
   });
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        // First try to get from localStorage
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          setProfileData({
-            name: parsedUser.name || "",
-            email: parsedUser.email || "",
-            phone: parsedUser.phone || "",
-          });
-        } else if (user) {
-          // Fallback to props if localStorage is empty
+        setIsLoading(true);
+        setError(null);
+        // Load user profile data
+        if (user) {
           setProfileData({
             name: user.name || "",
             email: user.email || "",
             phone: user.phone || "",
           });
         } else {
-          // If no user data is available, try to fetch from API
           const currentUser = await authService.getCurrentUser();
           if (currentUser) {
             setProfileData({
@@ -59,8 +53,30 @@ export default function SettingsTab({ user }) {
             });
           }
         }
+
+        // Load preferences data
+        try {
+          const response = await settingsService.getSettings();
+          if (response.data) {
+            setPreferencesData({
+              theme: response.data.theme || "light",
+              language: response.data.language || "en",
+              date_format: response.data.date_format || "MM/DD/YYYY"
+            });
+            setNotificationsData({
+              email_notifications: response.data.email_notifications ?? true,
+              push_notifications: response.data.push_notifications ?? true
+            });
+          }
+        } catch (error) {
+          console.error("Error loading settings:", error);
+          // Don't throw the error, just log it
+        }
       } catch (error) {
         console.error("Error loading user data:", error);
+        setError("Failed to load settings. Please try again.");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -79,50 +95,66 @@ export default function SettingsTab({ user }) {
     return '';
   };
 
-  const handleSaveProfile = async () => {
+  const handleProfileChange = (e) => {
+    const { name, value } = e.target;
+    setProfileData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handlePreferencesChange = (e) => {
+    const { name, value } = e.target;
+    setPreferencesData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleNotificationsChange = (e) => {
+    const { name, checked } = e.target;
+    setNotificationsData(prev => ({
+      ...prev,
+      [name]: checked
+    }));
+  };
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
     try {
-      // Call the auth profile update endpoint instead of settings
-      const response = await authService.updateProfile(profileData);
-      
-      if (response.data && response.data.user) {
-        // Update the stored user data with the response
-        const updatedUser = response.data.user;
-        authService.updateUser(updatedUser);
-        
-        // Update local state
-        setProfileData({
-          name: updatedUser.name || "",
-          email: updatedUser.email || "",
-          phone: updatedUser.phone || "",
-        });
-        
-        alert("Profile updated successfully");
-      } else {
-        throw new Error("Invalid response format");
+      setError(null);
+      const updatedUser = await settingsService.updateProfile(profileData);
+      if (updatedUser) {
+        updateUser(updatedUser);
+        alert('Profile updated successfully!');
       }
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      alert(error.response?.data?.error || "Failed to update profile. Please try again later.");
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      setError('Failed to update profile. Please try again.');
     }
   };
 
-  const handleSavePreferences = async () => {
+  const handlePreferencesSubmit = async (e) => {
+    e.preventDefault();
     try {
+      setError(null);
       await settingsService.updatePreferences(preferencesData);
-      alert("Preferences updated successfully");
-    } catch (error) {
-      console.error("Error updating preferences:", error);
-      alert("Failed to update preferences. Please try again later.");
+      alert('Preferences updated successfully!');
+    } catch (err) {
+      console.error('Error updating preferences:', err);
+      setError('Failed to update preferences. Please try again.');
     }
   };
 
-  const handleSaveNotifications = async () => {
+  const handleNotificationsSubmit = async (e) => {
+    e.preventDefault();
     try {
+      setError(null);
       await settingsService.updateNotifications(notificationsData);
-      alert("Notification settings updated successfully");
-    } catch (error) {
-      console.error("Error updating notifications:", error);
-      alert("Failed to update notifications. Please try again later.");
+      alert('Notification settings updated successfully!');
+    } catch (err) {
+      console.error('Error updating notifications:', err);
+      setError('Failed to update notification settings. Please try again.');
     }
   };
 
@@ -162,14 +194,6 @@ export default function SettingsTab({ user }) {
               </li>
               <li>
                 <button
-                  className={`w-full text-left px-4 py-3 rounded-none ${activeSection === "account" ? "bg-black text-white" : "hover:bg-gray-100"}`}
-                  onClick={() => setActiveSection("account")}
-                >
-                  Account
-                </button>
-              </li>
-              <li>
-                <button
                   className={`w-full text-left px-4 py-3 rounded-none ${activeSection === "preferences" ? "bg-black text-white" : "hover:bg-gray-100"}`}
                   onClick={() => setActiveSection("preferences")}
                 >
@@ -182,14 +206,6 @@ export default function SettingsTab({ user }) {
                   onClick={() => setActiveSection("notifications")}
                 >
                   Notifications
-                </button>
-              </li>
-              <li>
-                <button
-                  className={`w-full text-left px-4 py-3 rounded-none ${activeSection === "data" ? "bg-black text-white" : "hover:bg-gray-100"}`}
-                  onClick={() => setActiveSection("data")}
-                >
-                  Data Management
                 </button>
               </li>
             </ul>
@@ -225,7 +241,7 @@ export default function SettingsTab({ user }) {
                         type="text"
                         className="form-input"
                         value={profileData.name}
-                        onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                        onChange={handleProfileChange}
                       />
                     </div>
                     <div className="form-group">
@@ -234,7 +250,7 @@ export default function SettingsTab({ user }) {
                         type="email"
                         className="form-input"
                         value={profileData.email}
-                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                        onChange={handleProfileChange}
                       />
                     </div>
                     <div className="form-group">
@@ -243,7 +259,7 @@ export default function SettingsTab({ user }) {
                         type="tel"
                         className="form-input"
                         value={profileData.phone}
-                        onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                        onChange={handleProfileChange}
                       />
                     </div>
                   </div>
@@ -257,68 +273,11 @@ export default function SettingsTab({ user }) {
               >
                 <button
                   className="btn btn-primary"
-                  onClick={handleSaveProfile}
+                  onClick={handleProfileSubmit}
+                  disabled={isLoading}
                 >
                   <FiSave className="mr-2" />
-                  Save Changes
-                </button>
-              </motion.div>
-            </>
-          )}
-
-          {activeSection === "account" && (
-            <>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                className="bg-white rounded-lg shadow mb-6"
-              >
-                <div className="p-4 border-b">
-                  <h2 className="text-xl font-bold">Account Settings</h2>
-                </div>
-                <div className="p-4">
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="form-group">
-                      <label className="form-label">Change Password</label>
-                      <input type="password" className="form-input mb-2" placeholder="Current Password" />
-                      <input type="password" className="form-input mb-2" placeholder="New Password" />
-                      <input type="password" className="form-input" placeholder="Confirm New Password" />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Two-Factor Authentication</label>
-                      <div className="flex items-center gap-2">
-                        <input type="checkbox" id="twoFactor" />
-                        <label htmlFor="twoFactor">Enable two-factor authentication</label>
-                      </div>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Connected Accounts</label>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center p-2 border rounded">
-                          <span>Google</span>
-                          <button className="btn btn-outline btn-sm">Connect</button>
-                        </div>
-                        <div className="flex justify-between items-center p-2 border rounded">
-                          <span>Facebook</span>
-                          <button className="btn btn-outline btn-sm">Connect</button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="flex justify-end"
-              >
-                <button
-                  className="btn btn-primary"
-                >
-                  <FiSave className="mr-2" />
-                  Save Changes
+                  {isLoading ? "Saving..." : "Save Changes"}
                 </button>
               </motion.div>
             </>
@@ -342,11 +301,11 @@ export default function SettingsTab({ user }) {
                       <select
                         className="form-select"
                         value={preferencesData.theme}
-                        onChange={(e) => setPreferencesData({ ...preferencesData, theme: e.target.value })}
+                        onChange={handlePreferencesChange}
                       >
                         <option value="light">Light</option>
                         <option value="dark">Dark</option>
-                        <option value="System Default">System Default</option>
+                        <option value="system">System Default</option>
                       </select>
                     </div>
                     <div className="form-group">
@@ -354,13 +313,13 @@ export default function SettingsTab({ user }) {
                       <select
                         className="form-select"
                         value={preferencesData.language}
-                        onChange={(e) => setPreferencesData({ ...preferencesData, language: e.target.value })}
+                        onChange={handlePreferencesChange}
                       >
                         <option value="en">English</option>
-                        <option value="Hindi">Hindi</option>
-                        <option value="Tamil">Tamil</option>
-                        <option value="Telugu">Telugu</option>
-                        <option value="Bengali">Bengali</option>
+                        <option value="hi">Hindi</option>
+                        <option value="ta">Tamil</option>
+                        <option value="te">Telugu</option>
+                        <option value="bn">Bengali</option>
                       </select>
                     </div>
                     <div className="form-group">
@@ -368,22 +327,11 @@ export default function SettingsTab({ user }) {
                       <select
                         className="form-select"
                         value={preferencesData.date_format}
-                        onChange={(e) => setPreferencesData({ ...preferencesData, date_format: e.target.value })}
+                        onChange={handlePreferencesChange}
                       >
                         <option value="DD/MM/YYYY">DD/MM/YYYY</option>
                         <option value="MM/DD/YYYY">MM/DD/YYYY</option>
                         <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Start of Week</label>
-                      <select
-                        className="form-select"
-                        value={preferencesData.start_of_week}
-                        onChange={(e) => setPreferencesData({ ...preferencesData, start_of_week: e.target.value })}
-                      >
-                        <option value="Monday">Monday</option>
-                        <option value="Sunday">Sunday</option>
                       </select>
                     </div>
                   </div>
@@ -397,10 +345,11 @@ export default function SettingsTab({ user }) {
               >
                 <button
                   className="btn btn-primary"
-                  onClick={handleSavePreferences}
+                  onClick={handlePreferencesSubmit}
+                  disabled={isLoading}
                 >
                   <FiSave className="mr-2" />
-                  Save Changes
+                  {isLoading ? "Saving..." : "Save Changes"}
                 </button>
               </motion.div>
             </>
@@ -425,33 +374,27 @@ export default function SettingsTab({ user }) {
                         <div className="flex items-center gap-2">
                           <input
                             type="checkbox"
+                            id="emailTransaction"
+                            checked={notificationsData.email_notifications}
+                            onChange={handleNotificationsChange}
+                          />
+                          <label htmlFor="emailTransaction">Transaction updates</label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
                             id="emailBudget"
                             checked={notificationsData.email_notifications}
-                            onChange={(e) =>
-                              setNotificationsData({ ...notificationsData, email_notifications: e.target.checked })
-                            }
+                            onChange={handleNotificationsChange}
                           />
                           <label htmlFor="emailBudget">Budget alerts</label>
                         </div>
                         <div className="flex items-center gap-2">
                           <input
                             type="checkbox"
-                            id="emailReport"
-                            checked={notificationsData.email_notifications}
-                            onChange={(e) =>
-                              setNotificationsData({ ...notificationsData, email_notifications: e.target.checked })
-                            }
-                          />
-                          <label htmlFor="emailReport">Monthly reports</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
                             id="emailTips"
                             checked={notificationsData.email_notifications}
-                            onChange={(e) =>
-                              setNotificationsData({ ...notificationsData, email_notifications: e.target.checked })
-                            }
+                            onChange={handleNotificationsChange}
                           />
                           <label htmlFor="emailTips">Saving tips and recommendations</label>
                         </div>
@@ -465,9 +408,7 @@ export default function SettingsTab({ user }) {
                             type="checkbox"
                             id="pushTransaction"
                             checked={notificationsData.push_notifications}
-                            onChange={(e) =>
-                              setNotificationsData({ ...notificationsData, push_notifications: e.target.checked })
-                            }
+                            onChange={handleNotificationsChange}
                           />
                           <label htmlFor="pushTransaction">New transactions</label>
                         </div>
@@ -476,9 +417,7 @@ export default function SettingsTab({ user }) {
                             type="checkbox"
                             id="pushBudget"
                             checked={notificationsData.push_notifications}
-                            onChange={(e) =>
-                              setNotificationsData({ ...notificationsData, push_notifications: e.target.checked })
-                            }
+                            onChange={handleNotificationsChange}
                           />
                           <label htmlFor="pushBudget">Budget alerts</label>
                         </div>
@@ -487,9 +426,7 @@ export default function SettingsTab({ user }) {
                             type="checkbox"
                             id="pushBill"
                             checked={notificationsData.push_notifications}
-                            onChange={(e) =>
-                              setNotificationsData({ ...notificationsData, push_notifications: e.target.checked })
-                            }
+                            onChange={handleNotificationsChange}
                           />
                           <label htmlFor="pushBill">Bill reminders</label>
                         </div>
@@ -514,48 +451,12 @@ export default function SettingsTab({ user }) {
               >
                 <button
                   className="btn btn-primary"
-                  onClick={handleSaveNotifications}
+                  onClick={handleNotificationsSubmit}
+                  disabled={isLoading}
                 >
                   <FiSave className="mr-2" />
-                  Save Changes
+                  {isLoading ? "Saving..." : "Save Changes"}
                 </button>
-              </motion.div>
-            </>
-          )}
-
-          {activeSection === "data" && (
-            <>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                className="bg-white rounded-lg shadow mb-6"
-              >
-                <div className="p-4 border-b">
-                  <h2 className="text-xl font-bold">Data Management</h2>
-                </div>
-                <div className="p-4">
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">Data Backup</h3>
-                      <p className="text-sm text-muted mb-3">Create and manage backups of your data</p>
-                      <div className="flex gap-2">
-                        <button className="btn btn-primary">Create Backup</button>
-                        <button className="btn btn-outline">Restore Backup</button>
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-medium mb-2 text-expense">Danger Zone</h3>
-                      <p className="text-sm text-muted mb-3">Permanently delete your account and all associated data</p>
-                      <button
-                        className="btn btn-outline"
-                        style={{ borderColor: "var(--expense-color)", color: "var(--expense-color)" }}
-                      >
-                        Delete Account
-                      </button>
-                    </div>
-                  </div>
-                </div>
               </motion.div>
             </>
           )}
@@ -564,3 +465,5 @@ export default function SettingsTab({ user }) {
     </motion.div>
   )
 }
+
+export default SettingsTab;

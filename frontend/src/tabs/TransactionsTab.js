@@ -6,6 +6,8 @@ import { transactionsAPI, categoriesAPI } from "../services/api"
 import { formatCurrency, formatDate } from "../utils/format"
 import LoadingSpinner from '../components/LoadingSpinner'
 import { motion, AnimatePresence } from "framer-motion"
+import AnimatedButton from '../components/AnimatedButton'
+import Modal from '../components/Modal'
 
 export default function TransactionsTab({ onError }) {
   const [filterOpen, setFilterOpen] = useState(false)
@@ -39,16 +41,9 @@ export default function TransactionsTab({ onError }) {
     notes: "",
   })
   const [error, setError] = useState(null)
-  const [showFilterForm, setShowFilterForm] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [filterData, setFilterData] = useState({
-    startDate: "",
-    endDate: "",
-    category: "",
-    type: "",
-    minAmount: "",
-    maxAmount: "",
-  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [optimisticTransactions, setOptimisticTransactions] = useState([])
+  const [loadingStates, setLoadingStates] = useState({})
 
   useEffect(() => {
     fetchData()
@@ -101,33 +96,25 @@ export default function TransactionsTab({ onError }) {
       const data = await transactionsAPI.getAll(backendFilters)
       console.log("Fetched transactions:", data) // Debug log
       
-      // Transform the data to match the frontend's expected format
-      const transactions = Array.isArray(data) ? data.map(transaction => ({
-        id: transaction.id,
-        description: transaction.description,
-        amount: transaction.amount,
-        date: transaction.date,
-        category: transaction.category_id,
-        type: transaction.type,
-        notes: transaction.description, // Using description as notes for now
-        created_at: transaction.created_at,
-        updated_at: transaction.updated_at
-      })) : []
-      
-      setTransactions(transactions)
-      
-      // Calculate summary
-      const summary = transactions.reduce((acc, transaction) => {
-        if (transaction.type === 'income') {
-          acc.totalIncome += Number(transaction.amount)
-        } else {
-          acc.totalExpenses += Number(transaction.amount)
-        }
-        return acc
-      }, { totalIncome: 0, totalExpenses: 0, netFlow: 0 })
-      
-      summary.netFlow = summary.totalIncome - summary.totalExpenses
-      setSummary(summary)
+      if (Array.isArray(data)) {
+        setTransactions(data)
+        
+        // Calculate summary
+        const summary = data.reduce((acc, transaction) => {
+          if (transaction.type === 'income') {
+            acc.totalIncome += Number(transaction.amount)
+          } else {
+            acc.totalExpenses += Number(transaction.amount)
+          }
+          return acc
+        }, { totalIncome: 0, totalExpenses: 0, netFlow: 0 })
+        
+        summary.netFlow = summary.totalIncome - summary.totalExpenses
+        setSummary(summary)
+      } else {
+        console.error("Invalid transactions data format:", data)
+        setError("Invalid data format received from server")
+      }
     } catch (err) {
       console.error("Error fetching transactions:", err)
       setError("Failed to load transactions")
@@ -138,6 +125,22 @@ export default function TransactionsTab({ onError }) {
   }
 
   const handleAddTransaction = async () => {
+    setIsSubmitting(true)
+    const tempId = Date.now() // Temporary ID for optimistic update
+    
+    // Create optimistic transaction
+    const optimisticTransaction = {
+      id: tempId,
+      ...newTransaction,
+      amount: parseFloat(newTransaction.amount),
+      category_id: parseInt(newTransaction.category_id),
+      isOptimistic: true
+    }
+    
+    // Update UI immediately with optimistic data
+    setOptimisticTransactions(prev => [...prev, optimisticTransaction])
+    setTransactions(prev => [...prev, optimisticTransaction])
+    
     try {
       // Transform the data to match the backend's expected format
       const transactionData = {
@@ -148,7 +151,16 @@ export default function TransactionsTab({ onError }) {
         type: newTransaction.type,
       }
 
-      await transactionsAPI.create(transactionData)
+      const response = await transactionsAPI.create(transactionData)
+      
+      // Replace optimistic transaction with real one
+      setTransactions(prev => 
+        prev.map(t => t.id === tempId ? response : t)
+      )
+      setOptimisticTransactions(prev => 
+        prev.filter(t => t.id !== tempId)
+      )
+      
       setNewTransaction({
         description: "",
         amount: "",
@@ -158,34 +170,74 @@ export default function TransactionsTab({ onError }) {
         notes: "",
       })
       setShowAddForm(false)
-      fetchTransactions()
     } catch (err) {
       console.error("Error adding transaction:", err)
+      // Remove optimistic transaction on error
+      setTransactions(prev => 
+        prev.filter(t => t.id !== tempId)
+      )
+      setOptimisticTransactions(prev => 
+        prev.filter(t => t.id !== tempId)
+      )
       alert("Failed to add transaction. Please try again.")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   const handleEditTransaction = async () => {
     if (!editingTransaction) return
-
+    
+    setIsSubmitting(true)
+    const transactionId = editingTransaction.id
+    
+    // Store original transaction for rollback
+    const originalTransaction = transactions.find(t => t.id === transactionId)
+    
+    // Update UI immediately with optimistic data
+    setTransactions(prev => 
+      prev.map(t => t.id === transactionId ? { ...editingTransaction, isOptimistic: true } : t)
+    )
+    
     try {
-      await transactionsAPI.update(editingTransaction.id, editingTransaction)
+      const response = await transactionsAPI.update(transactionId, editingTransaction)
+      
+      // Replace optimistic update with real one
+      setTransactions(prev => 
+        prev.map(t => t.id === transactionId ? response : t)
+      )
       setEditingTransaction(null)
-      fetchTransactions()
     } catch (err) {
       console.error("Error updating transaction:", err)
+      // Rollback to original transaction on error
+      setTransactions(prev => 
+        prev.map(t => t.id === transactionId ? originalTransaction : t)
+      )
       alert("Failed to update transaction. Please try again.")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   const handleDeleteTransaction = async (id) => {
     if (window.confirm("Are you sure you want to delete this transaction?")) {
+      setLoadingStates(prev => ({ ...prev, [id]: true }))
+      
+      // Store transaction for rollback
+      const deletedTransaction = transactions.find(t => t.id === id)
+      
+      // Update UI immediately
+      setTransactions(prev => prev.filter(t => t.id !== id))
+      
       try {
         await transactionsAPI.delete(id)
-        fetchTransactions()
       } catch (err) {
         console.error("Error deleting transaction:", err)
+        // Rollback on error
+        setTransactions(prev => [...prev, deletedTransaction])
         alert("Failed to delete transaction. Please try again.")
+      } finally {
+        setLoadingStates(prev => ({ ...prev, [id]: false }))
       }
     }
   }
@@ -218,6 +270,25 @@ export default function TransactionsTab({ onError }) {
       transition={{ duration: 0.5 }}
       className="p-4"
     >
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Transactions</h2>
+        <div className="flex space-x-2">
+          <AnimatedButton
+            variant="outline"
+            onClick={() => setFilterOpen(!filterOpen)}
+            icon={FiFilter}
+          >
+            Filters
+          </AnimatedButton>
+          <AnimatedButton
+            onClick={() => setShowAddForm(true)}
+            icon={FiPlus}
+          >
+            Add Transaction
+          </AnimatedButton>
+        </div>
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {[
@@ -239,20 +310,13 @@ export default function TransactionsTab({ onError }) {
       </div>
 
       {/* Filters and Add Button */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.3 }}
         className="flex justify-between items-center mb-6"
       >
         <div className="flex items-center space-x-2">
-          <button
-            className="btn btn-outline"
-            onClick={() => setFilterOpen(!filterOpen)}
-          >
-            <FiFilter className="mr-2" />
-            Filters
-          </button>
           {filterOpen && (
             <div className="absolute bg-white p-4 rounded-lg shadow-lg z-10 mt-2">
               <div className="flex justify-end mb-2">
@@ -264,7 +328,7 @@ export default function TransactionsTab({ onError }) {
                   <FiX />
                 </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Date Range
@@ -336,246 +400,232 @@ export default function TransactionsTab({ onError }) {
             </div>
           )}
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => setShowAddForm(true)}
-        >
-          <FiPlus className="mr-2" />
-          Add Transaction
-        </button>
       </motion.div>
 
       {/* Add Transaction Form */}
-      <AnimatePresence>
-        {showAddForm && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="bg-white p-4 rounded-lg shadow mb-6"
+      <Modal
+        isOpen={showAddForm}
+        onClose={() => setShowAddForm(false)}
+        title="Add New Transaction"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <input
+              type="text"
+              className="form-input w-full"
+              value={newTransaction.description}
+              onChange={(e) =>
+                setNewTransaction({ ...newTransaction, description: e.target.value })
+              }
+              placeholder="Transaction description"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Amount
+            </label>
+            <input
+              type="number"
+              className="form-input w-full"
+              value={newTransaction.amount}
+              onChange={(e) =>
+                setNewTransaction({ ...newTransaction, amount: e.target.value })
+              }
+              placeholder="0.00"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Date
+            </label>
+            <input
+              type="date"
+              className="form-input w-full"
+              value={newTransaction.date}
+              onChange={(e) =>
+                setNewTransaction({ ...newTransaction, date: e.target.value })
+              }
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Category
+            </label>
+            <select
+              className="form-select w-full"
+              value={newTransaction.category_id}
+              onChange={(e) =>
+                setNewTransaction({ ...newTransaction, category_id: e.target.value })
+              }
+            >
+              <option value="">Select Category</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Type
+            </label>
+            <select
+              className="form-select w-full"
+              value={newTransaction.type}
+              onChange={(e) =>
+                setNewTransaction({ ...newTransaction, type: e.target.value })
+              }
+            >
+              <option value="expense">Expense</option>
+              <option value="income">Income</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes
+            </label>
+            <textarea
+              className="form-textarea w-full"
+              value={newTransaction.notes}
+              onChange={(e) =>
+                setNewTransaction({ ...newTransaction, notes: e.target.value })
+              }
+              placeholder="Additional notes"
+              rows="3"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end mt-4 space-x-2">
+          <AnimatedButton
+            variant="outline"
+            onClick={() => setShowAddForm(false)}
+            disabled={isSubmitting}
           >
-            <h3 className="text-lg font-semibold mb-4">Add New Transaction</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <input
-                  type="text"
-                  className="form-input w-full"
-                  value={newTransaction.description}
-                  onChange={(e) =>
-                    setNewTransaction({ ...newTransaction, description: e.target.value })
-                  }
-                  placeholder="Transaction description"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Amount
-                </label>
-                <input
-                  type="number"
-                  className="form-input w-full"
-                  value={newTransaction.amount}
-                  onChange={(e) =>
-                    setNewTransaction({ ...newTransaction, amount: e.target.value })
-                  }
-                  placeholder="Amount"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  className="form-input w-full"
-                  value={newTransaction.date}
-                  onChange={(e) =>
-                    setNewTransaction({ ...newTransaction, date: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Category
-                </label>
-                <select
-                  className="form-select w-full"
-                  value={newTransaction.category_id}
-                  onChange={(e) =>
-                    setNewTransaction({ ...newTransaction, category_id: e.target.value })
-                  }
-                >
-                  <option value="">Select Category</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Type
-                </label>
-                <select
-                  className="form-select w-full"
-                  value={newTransaction.type}
-                  onChange={(e) =>
-                    setNewTransaction({ ...newTransaction, type: e.target.value })
-                  }
-                >
-                  <option value="expense">Expense</option>
-                  <option value="income">Income</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes
-                </label>
-                <textarea
-                  className="form-input w-full"
-                  value={newTransaction.notes}
-                  onChange={(e) =>
-                    setNewTransaction({ ...newTransaction, notes: e.target.value })
-                  }
-                  placeholder="Additional notes"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end mt-4 space-x-2">
-              <button
-                className="btn btn-outline"
-                onClick={() => setShowAddForm(false)}
-              >
-                Cancel
-              </button>
-              <button className="btn btn-primary" onClick={handleAddTransaction}>
-                Save Transaction
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            Cancel
+          </AnimatedButton>
+          <AnimatedButton
+            onClick={handleAddTransaction}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Saving...' : 'Save Transaction'}
+          </AnimatedButton>
+        </div>
+      </Modal>
 
       {/* Edit Transaction Form */}
-      <AnimatePresence>
-        {editingTransaction && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="bg-white p-4 rounded-lg shadow mb-6"
+      <Modal
+        isOpen={!!editingTransaction}
+        onClose={() => setEditingTransaction(null)}
+        title="Edit Transaction"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <input
+              type="text"
+              className="form-input w-full"
+              value={editingTransaction?.description || ''}
+              onChange={(e) =>
+                setEditingTransaction({ ...editingTransaction, description: e.target.value })
+              }
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Amount
+            </label>
+            <input
+              type="number"
+              className="form-input w-full"
+              value={editingTransaction?.amount || ''}
+              onChange={(e) =>
+                setEditingTransaction({ ...editingTransaction, amount: e.target.value })
+              }
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Date
+            </label>
+            <input
+              type="date"
+              className="form-input w-full"
+              value={editingTransaction?.date || ''}
+              onChange={(e) =>
+                setEditingTransaction({ ...editingTransaction, date: e.target.value })
+              }
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Category
+            </label>
+            <select
+              className="form-select w-full"
+              value={editingTransaction?.category_id || ''}
+              onChange={(e) =>
+                setEditingTransaction({ ...editingTransaction, category_id: e.target.value })
+              }
+            >
+              <option value="">Select Category</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Type
+            </label>
+            <select
+              className="form-select w-full"
+              value={editingTransaction?.type || 'expense'}
+              onChange={(e) =>
+                setEditingTransaction({ ...editingTransaction, type: e.target.value })
+              }
+            >
+              <option value="expense">Expense</option>
+              <option value="income">Income</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes
+            </label>
+            <textarea
+              className="form-textarea w-full"
+              value={editingTransaction?.notes || ''}
+              onChange={(e) =>
+                setEditingTransaction({ ...editingTransaction, notes: e.target.value })
+              }
+              rows="3"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end mt-4 space-x-2">
+          <AnimatedButton
+            variant="outline"
+            onClick={() => setEditingTransaction(null)}
+            disabled={isSubmitting}
           >
-            <h3 className="text-lg font-semibold mb-4">Edit Transaction</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <input
-                  type="text"
-                  className="form-input w-full"
-                  value={editingTransaction.description}
-                  onChange={e =>
-                    setEditingTransaction({ ...editingTransaction, description: e.target.value })
-                  }
-                  placeholder="Transaction description"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Amount
-                </label>
-                <input
-                  type="number"
-                  className="form-input w-full"
-                  value={editingTransaction.amount}
-                  onChange={e =>
-                    setEditingTransaction({ ...editingTransaction, amount: e.target.value })
-                  }
-                  placeholder="Amount"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  className="form-input w-full"
-                  value={editingTransaction.date}
-                  onChange={e =>
-                    setEditingTransaction({ ...editingTransaction, date: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Category
-                </label>
-                <select
-                  className="form-select w-full"
-                  value={editingTransaction.category}
-                  onChange={e =>
-                    setEditingTransaction({ ...editingTransaction, category: e.target.value })
-                  }
-                >
-                  <option value="">Select Category</option>
-                  {categories.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Type
-                </label>
-                <select
-                  className="form-select w-full"
-                  value={editingTransaction.type}
-                  onChange={e =>
-                    setEditingTransaction({ ...editingTransaction, type: e.target.value })
-                  }
-                >
-                  <option value="expense">Expense</option>
-                  <option value="income">Income</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes
-                </label>
-                <textarea
-                  className="form-input w-full"
-                  value={editingTransaction.notes || ""}
-                  onChange={e =>
-                    setEditingTransaction({ ...editingTransaction, notes: e.target.value })
-                  }
-                  placeholder="Additional notes"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end mt-4 space-x-2">
-              <button
-                className="btn btn-outline"
-                onClick={() => setEditingTransaction(null)}
-              >
-                Cancel
-              </button>
-              <button className="btn btn-primary" onClick={handleEditTransaction}>
-                Save Changes
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            Cancel
+          </AnimatedButton>
+          <AnimatedButton
+            onClick={handleEditTransaction}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Saving...' : 'Save Changes'}
+          </AnimatedButton>
+        </div>
+      </Modal>
 
       {/* Transactions List */}
       <motion.div
@@ -606,19 +656,19 @@ export default function TransactionsTab({ onError }) {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className="border rounded-lg p-4"
+                    className={`border rounded-lg p-4 ${transaction.isOptimistic ? 'opacity-50' : ''}`}
                   >
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="flex items-center">
                           <span className="text-2xl mr-2">
-                            {categories.find(c => c.id === transaction.category)?.icon || "💰"}
+                            {categories.find(c => c.id === transaction.category_id)?.icon || "💰"}
                           </span>
                           <div>
                             <h3 className="font-bold">{transaction.description}</h3>
                             <p className="text-gray-500 text-sm">
-                              {new Date(transaction.date).toLocaleDateString()} • 
-                              {categories.find(c => c.id === transaction.category)?.name || "Uncategorized"}
+                              {formatDate(transaction.date)} • 
+                              {categories.find(c => c.id === transaction.category_id)?.name || "Uncategorized"}
                             </p>
                           </div>
                         </div>
@@ -636,14 +686,20 @@ export default function TransactionsTab({ onError }) {
                           <button
                             className="btn btn-outline btn-sm"
                             onClick={() => setEditingTransaction(transaction)}
+                            disabled={loadingStates[transaction.id]}
                           >
                             <FiEdit2 />
                           </button>
                           <button
                             className="btn btn-outline btn-sm text-red-500"
                             onClick={() => handleDeleteTransaction(transaction.id)}
+                            disabled={loadingStates[transaction.id]}
                           >
-                            <FiTrash2 />
+                            {loadingStates[transaction.id] ? (
+                              <LoadingSpinner size="sm" />
+                            ) : (
+                              <FiTrash2 />
+                            )}
                           </button>
                         </div>
                       </div>

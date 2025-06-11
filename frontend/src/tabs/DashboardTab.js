@@ -1,16 +1,24 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { FiCreditCard, FiDollarSign, FiDownload, FiPieChart, FiPlus, FiTrendingUp, FiTrendingDown } from "react-icons/fi"
+import React, { useState, useEffect, useCallback, useRef } from "react"
+import { FiCreditCard, FiDollarSign, FiDownload, FiPieChart, FiPlus, FiTrendingUp, FiTrendingDown, FiCalendar } from "react-icons/fi"
 import { formatCurrency, formatDate } from '../utils/format'
-import { LineChart, BarChart, PieChart, createExpenseBreakdownData, createTrendData, createBudgetVsActualData } from '../components/Charts'
+import { LineChart, BarChart, PieChart, createExpenseBreakdownData, createIncomeExpenseTrendData, createSingleTrendData, createBudgetVsActualData } from '../components/Charts'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { motion, AnimatePresence } from "framer-motion"
 import dashboardService from '../services/dashboardService'
+import Modal from '../components/Modal'
+import AnimatedButton from '../components/AnimatedButton'
 
 export default function DashboardTab({ onError }) {
-  const [timeframe, setTimeframe] = useState("month")
+  console.log('DashboardTab component rendered');
   const [isLoading, setIsLoading] = useState(true)
+  const [timeframe, setTimeframe] = useState("month") // Changed default from "all" to "month"
+  const [showCustomPeriod, setShowCustomPeriod] = useState(false)
+  const [customDateRange, setCustomDateRange] = useState({
+    start_date: "",
+    end_date: ""
+  })
   const [dashboardData, setDashboardData] = useState({
     summary: {
       totalExpenses: 0,
@@ -26,26 +34,102 @@ export default function DashboardTab({ onError }) {
     recentTransactions: [],
     categoryBreakdown: [],
     expenseTrends: [],
+    incomeTrends: [],
   })
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
+    console.log('fetchDashboardData called');
+    console.log('Dependencies during fetchDashboardData call:', 'timeframe:', timeframe, 'customDateRange:', customDateRange, 'onError:', onError);
       setIsLoading(true)
       try {
-        const data = await dashboardService.getDashboardData()
-        console.log('Dashboard summary:', data.summary) // Debug log for summary
-        setDashboardData(data)
-        if (onError) onError(null)
+      let data
+      switch (timeframe) {
+        case "today":
+          data = await dashboardService.getDashboardData("today")
+          break
+        case "month":
+          data = await dashboardService.getDashboardData("month")
+          break
+        case "custom":
+          if (customDateRange.start_date && customDateRange.end_date) {
+            data = await dashboardService.getDashboardData("custom", customDateRange)
+          } else {
+            data = await dashboardService.getDashboardData()
+          }
+          break
+        default:
+          data = await dashboardService.getDashboardData()
+      }
+      if (data) {
+        setDashboardData(prevData => ({
+          ...prevData,
+          ...data,
+          expenseTrends: Array.isArray(data.expenseTrends) ? data.expenseTrends : prevData.expenseTrends || [],
+          incomeTrends: Array.isArray(data.incomeTrends) ? data.incomeTrends : prevData.incomeTrends || [],
+          budgetStatus: Array.isArray(data.budgetStatus) ? data.budgetStatus : prevData.budgetStatus || [],
+          recentTransactions: Array.isArray(data.recentTransactions) ? data.recentTransactions : prevData.recentTransactions || [],
+          categoryBreakdown: Array.isArray(data.categoryBreakdown) ? data.categoryBreakdown : prevData.categoryBreakdown || [],
+          summary: data.summary ? { ...prevData.summary, ...data.summary } : prevData.summary,
+        }));
+      } else {
+        console.warn("Fetched dashboard data is null or undefined.");
+      }
       } catch (err) {
         console.error("Error fetching dashboard data:", err)
-        if (onError) onError("Failed to load dashboard data. Please ensure the backend server is running.")
+      setDashboardData({
+        summary: {
+          totalExpenses: 0,
+          totalIncome: 0,
+          currentBalance: 0,
+          savings: 0,
+          expenseTrend: "",
+          incomeTrend: "",
+          balanceTrend: "",
+          savingsRate: "0%",
+        },
+        budgetStatus: [],
+        recentTransactions: [],
+        categoryBreakdown: [],
+        expenseTrends: [],
+        incomeTrends: [],
+      });
       } finally {
         setIsLoading(false)
       }
-    }
+  }, [timeframe, customDateRange, onError])
 
-    fetchDashboardData()
-  }, [timeframe, onError])
+  // Use a ref to hold the latest fetchDashboardData function
+  const fetchDashboardDataRef = useRef(fetchDashboardData);
+  useEffect(() => {
+    fetchDashboardDataRef.current = fetchDashboardData; // Update the ref whenever fetchDashboardData changes
+  }, [fetchDashboardData]);
+
+  useEffect(() => {
+    console.log('DashboardTab useEffect running');
+    console.log('useEffect dependencies (fetchDashboardData reference):', fetchDashboardData);
+    // Call the function initially
+    fetchDashboardDataRef.current();
+
+    // Set up real-time updates every 30 seconds
+    const interval = setInterval(() => fetchDashboardDataRef.current(), 30000);
+    return () => {
+      console.log('Clearing DashboardTab interval');
+      clearInterval(interval)
+    }
+  }, []) // Empty dependency array, as the interval callback is now stable via ref
+
+  const handleTimeframeChange = (newTimeframe) => {
+    setTimeframe(newTimeframe)
+    if (newTimeframe === "custom") {
+      setShowCustomPeriod(true)
+    }
+  }
+
+  const handleCustomPeriodSubmit = () => {
+    if (customDateRange.start_date && customDateRange.end_date) {
+      setShowCustomPeriod(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -72,16 +156,13 @@ export default function DashboardTab({ onError }) {
           <select
             className="form-select"
             value={timeframe}
-            onChange={(e) => setTimeframe(e.target.value)}
-            style={{ width: "180px" }}
+            onChange={(e) => handleTimeframeChange(e.target.value)}
           >
+            <option value="all">All Time</option>
             <option value="today">Today</option>
             <option value="month">This Month</option>
+            <option value="custom">Custom Period</option>
           </select>
-          <button className="btn btn-outline btn-sm">
-            <FiDownload />
-            <span className="sr-only">Download Report</span>
-          </button>
         </div>
       </div>
 
@@ -115,12 +196,12 @@ export default function DashboardTab({ onError }) {
           <div className="card-content">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Monthly Income</p>
+                <p className="text-sm text-gray-500">Total Income</p>
                 <h3 className="text-2xl font-bold text-green-500">{formatCurrency(dashboardData.summary.totalIncome)}</h3>
                 <p className="text-xs text-gray-500">{dashboardData.summary.incomeTrend}</p>
-              </div>
+          </div>
               <FiTrendingUp className="text-2xl text-green-500" />
-            </div>
+        </div>
           </div>
         </motion.div>
 
@@ -131,7 +212,7 @@ export default function DashboardTab({ onError }) {
           <div className="card-content">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Monthly Expenses</p>
+                <p className="text-sm text-gray-500">Total Expenses</p>
                 <h3 className="text-2xl font-bold text-red-500">{formatCurrency(dashboardData.summary.totalExpenses)}</h3>
                 <p className="text-xs text-gray-500">{dashboardData.summary.expenseTrend}</p>
               </div>
@@ -147,7 +228,7 @@ export default function DashboardTab({ onError }) {
           <div className="card-content">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Monthly Savings</p>
+                <p className="text-sm text-gray-500">Total Savings</p>
                 <h3 className="text-2xl font-bold text-blue-500">{formatCurrency(dashboardData.summary.savings)}</h3>
                 <p className="text-xs text-gray-500">Rate: {dashboardData.summary.savingsRate}</p>
               </div>
@@ -158,49 +239,39 @@ export default function DashboardTab({ onError }) {
       </motion.div>
 
       {/* Main Content Area */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Charts */}
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="col-span-2"
+          className="lg:col-span-2 space-y-6 flex flex-col"
         >
-          <div className="card mb-6">
-            <div className="card-content">
-              <h2 className="card-title">Expense Distribution</h2>
-              <div className="h-64">
-                {dashboardData.categoryBreakdown.length > 0 ? (
-                  <PieChart
-                    data={createExpenseBreakdownData(dashboardData.categoryBreakdown)}
-                    title="Expense Distribution"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-gray-500">No expense data available</p>
-                  </div>
-                )}
-              </div>
-            </div>
+          {/* Expense Distribution Chart */}
+          <div className="card flex-grow">
+            <div className="card-content flex justify-center items-center">
+              <div className="w-64 h-64 md:w-80 md:h-80">
+              <PieChart
+                data={createExpenseBreakdownData(dashboardData.categoryBreakdown)}
+                  title="Expense Distribution by Category"
+                />
+          </div>
+        </div>
           </div>
 
-          <div className="card">
-            <div className="card-content">
-              <h2 className="card-title">Income vs Expenses</h2>
-              <div className="h-64">
-                {dashboardData.budgetStatus.length > 0 ? (
-                  <BarChart
-                    data={createBudgetVsActualData(dashboardData.budgetStatus)}
-                    title="Budget vs Actual"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-gray-500">No budget data available</p>
-                  </div>
-                )}
+          {/* Income vs Expenses Chart */}
+          <div className="card flex-grow">
+            <div className="card-content flex justify-center items-center">
+              {Array.isArray(dashboardData.expenseTrends) && Array.isArray(dashboardData.incomeTrends) && (
+                <div className="w-full max-w-sm">
+              <BarChart
+                    data={createIncomeExpenseTrendData(dashboardData.expenseTrends ?? [], dashboardData.incomeTrends ?? [])}
+                    title="Income vs Expenses Over Time"
+              />
               </div>
-            </div>
+            )}
           </div>
+        </div>
         </motion.div>
 
         {/* Right Column - Recent Transactions and Expense Trends */}
@@ -208,85 +279,103 @@ export default function DashboardTab({ onError }) {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="space-y-6"
+          className="lg:col-span-1 space-y-6"
         >
           {/* Recent Transactions */}
           <div className="card">
-            <div className="card-content">
-              <h2 className="card-title">Recent Transactions</h2>
-              <div className="space-y-4">
-                {dashboardData.recentTransactions.length === 0 ? (
-                  <motion.p 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-gray-500"
-                  >
-                    No recent transactions found.
-                  </motion.p>
-                ) : (
-                  <AnimatePresence>
-                    {dashboardData.recentTransactions.map((transaction, index) => (
-                      <motion.div
-                        key={transaction.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        transition={{ duration: 0.3, delay: index * 0.05 }}
-                        className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg"
-                      >
-                        <div className="flex items-center">
-                          <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                              transaction.type === "income" ? "bg-green-100" : "bg-red-100"
-                            }`}
-                          >
-                            {transaction.type === "income" ? (
-                              <FiTrendingUp className="text-green-500" />
-                            ) : (
-                              <FiTrendingDown className="text-red-500" />
-                            )}
-                          </div>
-                          <div className="ml-3">
-                            <p className="text-sm font-medium">{transaction.description}</p>
-                            <p className="text-xs text-gray-500">{formatDate(transaction.date)}</p>
-                          </div>
-                        </div>
-                        <span className={`text-sm font-medium ${
-                          transaction.type === "income" ? "text-green-500" : "text-red-500"
-                        }`}>
-                          {transaction.type === "income" ? "+" : "-"}₹{formatCurrency(Math.abs(transaction.amount))}
-                        </span>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                )}
+          <div className="card-header">
+              <h3 className="card-title">Recent Transactions</h3>
+          </div>
+          <div className="card-content">
+              {dashboardData.recentTransactions.length > 0 ? (
+                <div className="space-y-4">
+                {dashboardData.recentTransactions.map((transaction) => (
+                    <div key={transaction.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                      <div>
+                        <p className="font-medium">{transaction.description}</p>
+                        <p className="text-sm text-gray-500">{transaction.category}</p>
+                    </div>
+                      <div className="text-right">
+                        <p className={`font-medium ${transaction.type === 'expense' ? 'text-red-500' : 'text-green-500'}`}>
+                          {transaction.type === 'expense' ? '-' : '+'}{formatCurrency(transaction.amount)}
+                        </p>
+                        <p className="text-sm text-gray-500">{formatDate(transaction.date)}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+              ) : (
+                <p className="text-gray-500 text-center py-4">No recent transactions</p>
+            )}
+          </div>
           </div>
 
-          {/* Expense Trends */}
-          <div className="card">
-            <div className="card-content">
-              <h2 className="card-title">Expense Trends</h2>
-              <div className="h-48">
-                {dashboardData.expenseTrends?.length > 0 ? (
-                  <LineChart
-                    data={createTrendData(
-                      dashboardData.expenseTrends.map(e => ({ date: e.month, amount: e.total })),
-                      "Expense Trend"
-                    )}
-                    title="Monthly Expense Trend"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-gray-500">No trend data available</p>
-                  </div>
-                )}
-              </div>
-            </div>
+          {/* Expense Trends - Based on the screenshot, this is on the right */}
+        <div className="card">
+          <div className="card-header">
+              <h3 className="card-title">Expense Trends</h3>
           </div>
+            <div className="card-content">
+               {dashboardData.expenseTrends.length > 0 ? (
+              <LineChart
+                   data={createSingleTrendData(dashboardData.expenseTrends, 'Expenses', 'rgb(255, 99, 132)')}
+                   title="Expense Trends"
+              />
+            ) : (
+                 <p className="text-gray-500 text-center py-4">No trend data available</p>
+            )}
+          </div>
+        </div>
         </motion.div>
       </div>
+
+      {/* Custom Period Modal */}
+      <Modal
+        isOpen={showCustomPeriod}
+        onClose={() => setShowCustomPeriod(false)}
+        title="Select Custom Period"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="form-label">Start Date</label>
+            <input
+              type="date"
+              className="form-input"
+              value={customDateRange.start_date}
+              onChange={(e) => setCustomDateRange(prev => ({
+                ...prev,
+                start_date: e.target.value
+              }))}
+            />
+          </div>
+          <div>
+            <label className="form-label">End Date</label>
+            <input
+              type="date"
+              className="form-input"
+              value={customDateRange.end_date}
+              onChange={(e) => setCustomDateRange(prev => ({
+                ...prev,
+                end_date: e.target.value
+              }))}
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <AnimatedButton
+              onClick={() => setShowCustomPeriod(false)}
+              variant="secondary"
+            >
+              Cancel
+            </AnimatedButton>
+            <AnimatedButton
+              onClick={handleCustomPeriodSubmit}
+              disabled={!customDateRange.start_date || !customDateRange.end_date}
+            >
+              Show Data
+            </AnimatedButton>
+      </div>
+    </div>
+      </Modal>
     </motion.div>
   )
 }

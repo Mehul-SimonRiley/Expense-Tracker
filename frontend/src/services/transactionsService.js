@@ -9,12 +9,12 @@ export const getAll = async (filters = {}) => {
     if (value) queryParams.append(key, value);
   });
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : "";
-  return fetchAPI(`/transactions/${queryString}`);
+  return fetchAPI(`/transactions${queryString}`);
 };
 
 // Get a transaction by ID
 export const getById = async (id) => {
-  return fetchAPI(`/transaction/${id}`);
+  return fetchAPI(`/transactions/${id}`);
 };
 
 // Create a new transaction
@@ -27,7 +27,7 @@ export const create = async (transactionData) => {
 
 // Update a transaction
 export const update = async (id, transactionData) => {
-  return fetchAPI(`/transaction/${id}`, {
+  return fetchAPI(`/transactions/${id}`, {
     method: "PUT",
     body: JSON.stringify(transactionData),
   });
@@ -35,7 +35,7 @@ export const update = async (id, transactionData) => {
 
 // Delete a transaction
 export const remove = async (id) => {
-  return fetchAPI(`/transaction/${id}`, {
+  return fetchAPI(`/transactions/${id}`, {
     method: "DELETE",
   });
 };

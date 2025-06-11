@@ -3,6 +3,7 @@ from models import User, Category
 from extensions import db, jwt
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 import logging
+from flask import current_app
 
 logger = logging.getLogger(__name__)
 
@@ -82,67 +83,72 @@ def register():
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    logger.info(f"Login attempt for email: {email}")
-
-    if not email or not password:
-        logger.error("Missing email or password in login request")
-        return jsonify({"msg": "Missing email or password"}), 400
-
     try:
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
+        logger.info(f"Login attempt for email: {email}")
+
+        if not email or not password:
+            logger.error("Missing email or password in login request")
+            return jsonify({"msg": "Missing email or password"}), 400
+
         user = User.query.filter_by(email=email).first()
         if not user:
             logger.warning(f"User not found for email: {email}")
             return jsonify({"msg": "Invalid email or password"}), 401
 
-        if user.check_password(password):
-            # Convert user.id to string for JWT identity
-            user_id = str(user.id)
-            logger.info(f"Creating tokens for user ID: {user_id}")
-            
-            try:
-                access_token = create_access_token(identity=user_id)
-                refresh_token = create_refresh_token(identity=user_id)
-                logger.info(f"Tokens created successfully for user: {user_id}")
-                
-                return jsonify({
-                    "msg": "Login successful",
-                    "access_token": access_token,
-                    "refresh_token": refresh_token,
-                    "user": user.to_dict()
-                })
-            except Exception as e:
-                logger.error(f"Token creation error: {str(e)}")
-                return jsonify({"msg": "Authentication failed - token creation error"}), 500
-        else:
+        if not user.check_password(password):
             logger.warning(f"Invalid password for user: {email}")
             return jsonify({"msg": "Invalid email or password"}), 401
+
+        # Convert user.id to string for JWT identity
+        user_id = str(user.id)
+        logger.info(f"Creating tokens for user ID: {user_id}")
+        
+        try:
+            access_token = create_access_token(identity=user_id)
+            refresh_token = create_refresh_token(identity=user_id)
+            logger.info(f"Tokens created successfully for user: {user_id}")
+            
+            return jsonify({
+                "msg": "Login successful",
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "user": user.to_dict()
+            })
+        except Exception as e:
+            logger.error(f"Token creation error: {str(e)}")
+            return jsonify({"msg": "Authentication failed - token creation error"}), 500
             
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
         return jsonify({"msg": "Login failed"}), 500
 
 @auth_bp.route('/refresh', methods=['POST'])
-@jwt_required(refresh=True)
 def refresh():
     try:
-        current_user_id = get_jwt_identity()
-        logger.info(f"Refreshing token for user ID: {current_user_id}")
-        
-        # Ensure identity is a string
-        user_id = str(current_user_id)
+        refresh_token = request.json.get('refresh_token')
+        if not refresh_token:
+            return jsonify({"msg": "Missing refresh token"}), 400
+
+        # Verify the refresh token
+        try:
+            user_id = jwt.decode(refresh_token, current_app.config['JWT_SECRET_KEY'], algorithms=[current_app.config['JWT_ALGORITHM']])['sub']
+        except Exception as e:
+            logger.error(f"Invalid refresh token: {str(e)}")
+            return jsonify({"msg": "Invalid refresh token"}), 401
+
+        # Create new access token
         access_token = create_access_token(identity=user_id)
-        logger.info(f"Access token refreshed successfully for user ID: {user_id}")
         
         return jsonify({
             "msg": "Token refreshed successfully",
             "access_token": access_token
         })
     except Exception as e:
-        logger.error(f'Refresh token error for user ID {current_user_id}: {str(e)}')
-        return jsonify({'msg': 'Failed to refresh token'}), 500
+        logger.error(f"Token refresh error: {str(e)}")
+        return jsonify({"msg": "Failed to refresh token"}), 500
 
 @auth_bp.route('/profile', methods=['GET'])
 @jwt_required()

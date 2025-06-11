@@ -1,60 +1,59 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:5000/api", // Backend URL
-  withCredentials: true,
+  baseURL: 'http://localhost:5000/api',
   headers: {
     'Content-Type': 'application/json',
   }
 });
 
-// Add a request interceptor to add the JWT token
+// Request interceptor
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
-// Add a response interceptor to handle errors
+// Response interceptor
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    
+
     // If the error is 401 and we haven't tried to refresh the token yet
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
+
       try {
-        // Try to refresh the token
-        const response = await api.post('/auth/refresh');
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+
+        const response = await axios.post('http://localhost:5000/api/auth/refresh', {
+          refresh_token: refreshToken
+        });
+
         const { access_token } = response.data;
-        
-        // Store the new token
-        localStorage.setItem('token', access_token);
-        
+        localStorage.setItem('accessToken', access_token);
+
         // Retry the original request with the new token
         originalRequest.headers.Authorization = `Bearer ${access_token}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // If refresh fails, redirect to login
-        localStorage.removeItem('token');
-        window.location.href = '/';
-        return Promise.reject(refreshError);
+        console.error('Token refresh failed:', refreshError);
+        // Don't clear tokens or redirect - let the component handle the error
+        return Promise.reject(error);
       }
-    } else if (error.response?.status === 422) {
-      console.error("Validation error:", error.response.data);
-      return Promise.reject(error);
-    } else if (error.response?.status === 429) {
-      // Handle rate limit error
-      console.warn("Rate limit exceeded. Please wait a moment before trying again.");
-      return Promise.reject(new Error("Rate limit exceeded. Please wait a moment before trying again."));
     }
+
     return Promise.reject(error);
   }
 );
@@ -74,7 +73,7 @@ export const transactionsAPI = {
       return response.data || []
     } catch (error) {
       console.error('Error fetching transactions:', error)
-      return []
+      throw error
     }
   },
   getById: async (id) => {
@@ -161,21 +160,40 @@ export const categoriesAPI = {
       const response = await api.get('/categories/breakdown')
       return response.data || []
     } catch (error) {
-      console.error('Error fetching category expense breakdown:', error)
+      console.error('Error fetching expense breakdown:', error)
       return []
     }
-  }
+  },
 }
 
 // Budgets API
 export const budgetsAPI = {
   getAll: async () => {
     try {
-      const response = await api.get("/budgets")
-      return response.data || []
+      const response = await api.get("/budgets");
+      const budgets = response.data || [];
+      // Calculate current spending for each budget
+      const budgetsWithSpending = await Promise.all(
+        budgets.map(async (budget) => {
+          const transactions = await transactionsAPI.getAll({
+            category: budget.category_id,
+            start_date: budget.start_date,
+            end_date: budget.end_date
+          });
+          const spent = transactions
+            .filter(t => t.type === 'expense')
+            .reduce((sum, t) => sum + Number(t.amount), 0);
+          return {
+            ...budget,
+            spent,
+            percentage: (spent / budget.amount) * 100
+          };
+        })
+      );
+      return budgetsWithSpending;
     } catch (error) {
-      console.error('Error fetching budgets:', error)
-      return []
+      console.error('Error fetching budgets:', error);
+      throw error;
     }
   },
   getById: async (id) => {
@@ -324,22 +342,104 @@ export const userAPI = {
 
 // Settings Service
 export const settingsService = {
-  updateProfile: async (profileData) => {
-    return api.put("/settings/profile", profileData);
-  },
-  updatePreferences: async (preferencesData) => {
-    return api.put("/settings/preferences", preferencesData);
-  },
-  updateNotifications: async (notificationsData) => {
-    return api.put("/settings/notifications", notificationsData);
-  },
-  createBackup: async () => {
-    return api.post("/settings/backup");
-  },
-  restoreBackup: async () => {
-    return api.post("/settings/restore");
-  },
-  deleteAccount: async () => {
-    return api.delete("/settings/account");
-  },
+    async getSettings() {
+        try {
+            const response = await api.get('/settings');
+            return response.data;
+        } catch (error) {
+            console.error('Get settings error:', error);
+            throw error;
+        }
+    },
+
+    async updateProfile(data) {
+        try {
+            const response = await api.put('/settings/profile', data);
+            return response.data;
+        } catch (error) {
+            console.error('Update profile error:', error);
+            throw error;
+        }
+    },
+
+    async updatePreferences(data) {
+        try {
+            const response = await api.put('/settings/preferences', data);
+            return response.data;
+        } catch (error) {
+            console.error('Update preferences error:', error);
+            throw error;
+        }
+    },
+
+    async updateNotifications(data) {
+        try {
+            const response = await api.put('/settings/notifications', data);
+            return response.data;
+        } catch (error) {
+            console.error('Update notifications error:', error);
+            throw error;
+        }
+    },
+
+    createBackup: async () => {
+        return api.post("/settings/backup");
+    },
+
+    restoreBackup: async () => {
+        return api.post("/settings/restore");
+    },
+
+    deleteAccount: async () => {
+        return api.delete("/settings/account");
+    }
 };
+
+// Auth Service
+export const authService = {
+    async login(email, password) {
+        try {
+            const response = await api.post('/auth/login', { email, password });
+            const { access_token, refresh_token, user } = response.data;
+            
+            localStorage.setItem('accessToken', access_token);
+            localStorage.setItem('refreshToken', refresh_token);
+            
+            return { user };
+        } catch (error) {
+            console.error('Login error:', error);
+            throw error;
+        }
+    },
+
+    async register(name, email, password) {
+        try {
+            const response = await api.post('/auth/register', { name, email, password });
+            const { access_token, refresh_token, user } = response.data;
+            
+            localStorage.setItem('accessToken', access_token);
+            localStorage.setItem('refreshToken', refresh_token);
+            
+            return { user };
+        } catch (error) {
+            console.error('Registration error:', error);
+            throw error;
+        }
+    },
+
+    logout() {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+    },
+
+    async getCurrentUser() {
+        try {
+            const response = await api.get('/auth/profile');
+            return response.data;
+        } catch (error) {
+            console.error('Get current user error:', error);
+            throw error;
+        }
+    }
+};
+

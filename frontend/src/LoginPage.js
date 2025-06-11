@@ -1,142 +1,102 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext';
 import { FiDollarSign, FiMail, FiLock, FiUser, FiAlertCircle } from "react-icons/fi"
-import api from "./services/api"
 import "./LoginPage.css"
 
-export default function LoginPage({ onLogin }) {
-  const [isLogin, setIsLogin] = useState(true)
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [name, setName] = useState("")
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
+const LoginPage = () => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
+    const { login } = useAuth();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            setError('');
+            setLoading(true);
+            await login(email, password);
+            navigate('/');
+        } catch (err) {
+            console.error('Login error:', err);
+            setError(err.message || 'Failed to log in');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    try {
-      let response
-      if (isLogin) {
-        response = await api.post("/auth/login", { email, password })
-      } else {
-        response = await api.post("/auth/register", { email, password, name })
-      }
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-md w-full space-y-8">
+                <div>
+                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                        Sign in to your account
+                    </h2>
+                </div>
+                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                    {error && (
+                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                            <span className="block sm:inline">{error}</span>
+                        </div>
+                    )}
+                    <div className="rounded-md shadow-sm -space-y-px">
+                        <div>
+                            <label htmlFor="email-address" className="sr-only">
+                                Email address
+                            </label>
+                            <input
+                                id="email-address"
+                                name="email"
+                                type="email"
+                                autoComplete="email"
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                                placeholder="Email address"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="password" className="sr-only">
+                                Password
+                            </label>
+                            <input
+                                id="password"
+                                name="password"
+                                type="password"
+                                autoComplete="current-password"
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                                placeholder="Password"
+                            />
+                        </div>
+                    </div>
 
-      const { access_token, user } = response.data
-      if (access_token) {
-        localStorage.setItem("token", access_token)
-        api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
-        onLogin(user)
-      } else {
-        throw new Error("No access token received from server")
-      }
-    } catch (error) {
-      console.error("Auth error:", error)
-      setError(error.response?.data?.msg || error.message || "Authentication failed")
-    } finally {
-      setLoading(false)
-    }
-  }
+                    <div>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                            {loading ? 'Signing in...' : 'Sign in'}
+                        </button>
+                    </div>
 
-  return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
-          <div className="login-logo">
-            <FiDollarSign className="login-logo-icon" />
-            <h1 className="login-logo-text">Traxpense</h1>
-          </div>
-          <p className="login-subtitle">Your Personal Finance Tracker</p>
-        </div>
-
-        <div className="login-tabs">
-          <button className={`login-tab ${isLogin ? "active" : ""}`} onClick={() => setIsLogin(true)}>
-            Login
-          </button>
-          <button className={`login-tab ${!isLogin ? "active" : ""}`} onClick={() => setIsLogin(false)}>
-            Register
-          </button>
-        </div>
-
-        {error && (
-          <div className="error-message">
-            <FiAlertCircle />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="login-form">
-          {!isLogin && (
-            <div className="form-group">
-              <label className="form-label">
-                <FiUser className="input-icon" />
-                Full Name
-              </label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="Enter your full name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required={!isLogin}
-              />
+                    <div className="text-sm text-center">
+                        <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+                            Don't have an account? Sign up
+                        </Link>
+                    </div>
+                </form>
             </div>
-          )}
-
-          <div className="form-group">
-            <label className="form-label">
-              <FiMail className="input-icon" />
-              Email Address
-            </label>
-            <input
-              type="email"
-              className="form-input"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">
-              <FiLock className="input-icon" />
-              Password
-            </label>
-            <input
-              type="password"
-              className="form-input"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          {isLogin && (
-            <div className="forgot-password">
-              <a href="#reset">Forgot password?</a>
-            </div>
-          )}
-
-          <button type="submit" className="login-button" disabled={loading}>
-            {loading ? "Please wait..." : isLogin ? "Login" : "Create Account"}
-          </button>
-        </form>
-
-        <div className="login-footer">
-          <p>
-            {isLogin ? "Don't have an account? " : "Already have an account? "}
-            <button className="text-link" onClick={() => setIsLogin(!isLogin)}>
-              {isLogin ? "Sign up" : "Sign in"}
-            </button>
-          </p>
         </div>
-      </div>
-    </div>
-  )
-}
+    );
+};
+
+export default LoginPage;

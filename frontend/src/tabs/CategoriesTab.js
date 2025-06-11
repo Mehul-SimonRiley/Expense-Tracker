@@ -7,6 +7,8 @@ import { budgetsAPI } from "../services/api"
 import { formatCurrency } from "../utils/format"
 import LoadingSpinner from '../components/LoadingSpinner'
 import { motion, AnimatePresence } from "framer-motion"
+import AnimatedButton from '../components/AnimatedButton'
+import Modal from '../components/Modal'
 
 export default function CategoriesTab() {
   const [categories, setCategories] = useState([])
@@ -45,7 +47,13 @@ export default function CategoriesTab() {
   const fetchBudgets = async () => {
     try {
       const data = await budgetsAPI.getAll();
-      setBudgets(Array.isArray(data) ? data : []);
+      // Get current date for filtering active budgets
+      const now = new Date();
+      const activeBudgets = data.filter(budget => 
+        new Date(budget.start_date) <= now && 
+        new Date(budget.end_date) >= now
+      );
+      setBudgets(activeBudgets);
     } catch (err) {
       console.error('Error fetching budgets:', err);
       setBudgets([]);
@@ -124,13 +132,12 @@ export default function CategoriesTab() {
     >
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Categories</h2>
-        <button
-          className="btn btn-primary"
+        <AnimatedButton
           onClick={() => setShowAddForm(true)}
+          icon={FiPlus}
         >
-          <FiPlus className="mr-2" />
           Add Category
-        </button>
+        </AnimatedButton>
       </div>
 
       <motion.div
@@ -149,12 +156,11 @@ export default function CategoriesTab() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <AnimatePresence>
                 {categories.map((category, index) => {
-                  const now = new Date();
-                  const currentBudget = budgets.find(budget =>
-                    String(budget.category_id) === String(category.id) &&
-                    new Date(budget.start_date) <= now &&
-                    new Date(budget.end_date) >= now
-                  );
+                  const budget = budgets.find(b => String(b.category_id) === String(category.id));
+                  const spent = budget ? budget.spent || 0 : 0;
+                  const amount = budget ? budget.amount || 0 : 0;
+                  const percentage = amount > 0 ? (spent / amount) * 100 : 0;
+                  
                   return (
                     <motion.div
                       key={category.id}
@@ -171,9 +177,27 @@ export default function CategoriesTab() {
                             <span className="text-2xl mr-2">{category.icon}</span>
                             <h3 className="font-bold">{category.name}</h3>
                           </div>
-                          <p className="text-gray-500 mt-1">
-                            Budget: {formatCurrency(currentBudget ? currentBudget.amount : 0)}
-                          </p>
+                          {budget ? (
+                            <div className="mt-2">
+                              <p className="text-gray-500">
+                                Budget: {formatCurrency(amount)}
+                              </p>
+                              <p className="text-gray-500">
+                                Spent: {formatCurrency(spent)}
+                              </p>
+                              <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                                <div
+                                  className="h-2.5 rounded-full"
+                                  style={{
+                                    width: `${Math.min(percentage, 100)}%`,
+                                    backgroundColor: percentage > 90 ? '#ef4444' : '#3b82f6'
+                                  }}
+                                ></div>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-gray-500 mt-2">No active budget</p>
+                          )}
                         </div>
                         <div className="flex space-x-2">
                           <button
@@ -191,7 +215,7 @@ export default function CategoriesTab() {
                         </div>
                       </div>
                     </motion.div>
-                  )
+                  );
                 })}
               </AnimatePresence>
             </div>
@@ -199,175 +223,165 @@ export default function CategoriesTab() {
         </div>
       </motion.div>
 
-      <AnimatePresence>
-        {showAddForm && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="bg-white rounded-lg shadow mb-6"
+      <Modal
+        isOpen={showAddForm}
+        onClose={() => setShowAddForm(false)}
+        title="Add New Category"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Name
+            </label>
+            <input
+              type="text"
+              className="form-input w-full"
+              value={newCategory.name}
+              onChange={(e) =>
+                setNewCategory({ ...newCategory, name: e.target.value })
+              }
+              placeholder="Category name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Budget
+            </label>
+            <input
+              type="number"
+              className="form-input w-full"
+              value={newCategory.budget}
+              onChange={(e) =>
+                setNewCategory({ ...newCategory, budget: e.target.value })
+              }
+              placeholder="Budget amount"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Color
+            </label>
+            <input
+              type="color"
+              className="w-full h-10"
+              value={newCategory.color}
+              onChange={(e) =>
+                setNewCategory({ ...newCategory, color: e.target.value })
+              }
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Icon
+            </label>
+            <input
+              type="text"
+              className="form-input w-full"
+              value={newCategory.icon}
+              onChange={(e) =>
+                setNewCategory({ ...newCategory, icon: e.target.value })
+              }
+              placeholder="Emoji icon"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end mt-4 space-x-2">
+          <AnimatedButton
+            variant="outline"
+            onClick={() => setShowAddForm(false)}
           >
-            <h3 className="text-lg font-semibold mb-4">Add New Category</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Name
-                </label>
-                <input
-                  type="text"
-                  className="form-input w-full"
-                  value={newCategory.name}
-                  onChange={(e) =>
-                    setNewCategory({ ...newCategory, name: e.target.value })
-                  }
-                  placeholder="Category name"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Budget
-                </label>
-                <input
-                  type="number"
-                  className="form-input w-full"
-                  value={newCategory.budget}
-                  onChange={(e) =>
-                    setNewCategory({ ...newCategory, budget: e.target.value })
-                  }
-                  placeholder="Budget amount"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Color
-                </label>
-                <input
-                  type="color"
-                  className="w-full h-10"
-                  value={newCategory.color}
-                  onChange={(e) =>
-                    setNewCategory({ ...newCategory, color: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Icon
-                </label>
-                <input
-                  type="text"
-                  className="form-input w-full"
-                  value={newCategory.icon}
-                  onChange={(e) =>
-                    setNewCategory({ ...newCategory, icon: e.target.value })
-                  }
-                  placeholder="Emoji icon"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end mt-4 space-x-2">
-              <button
-                className="btn btn-outline"
-                onClick={() => setShowAddForm(false)}
-              >
-                Cancel
-              </button>
-              <button className="btn btn-primary" onClick={handleAddCategory}>
-                Save Category
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            Cancel
+          </AnimatedButton>
+          <AnimatedButton
+            onClick={handleAddCategory}
+          >
+            Save Category
+          </AnimatedButton>
+        </div>
+      </Modal>
 
-      <AnimatePresence>
-        {editingCategory && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="bg-white rounded-lg shadow mb-6"
+      <Modal
+        isOpen={!!editingCategory}
+        onClose={() => setEditingCategory(null)}
+        title="Edit Category"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Name
+            </label>
+            <input
+              type="text"
+              className="form-input w-full"
+              value={editingCategory?.name || ''}
+              onChange={(e) =>
+                setEditingCategory({ ...editingCategory, name: e.target.value })
+              }
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Budget
+            </label>
+            <input
+              type="number"
+              className="form-input w-full"
+              value={editingCategory?.budget || ''}
+              onChange={(e) =>
+                setEditingCategory({
+                  ...editingCategory,
+                  budget: e.target.value,
+                })
+              }
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Color
+            </label>
+            <input
+              type="color"
+              className="w-full h-10"
+              value={editingCategory?.color || '#3b82f6'}
+              onChange={(e) =>
+                setEditingCategory({
+                  ...editingCategory,
+                  color: e.target.value,
+                })
+              }
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Icon
+            </label>
+            <input
+              type="text"
+              className="form-input w-full"
+              value={editingCategory?.icon || '📊'}
+              onChange={(e) =>
+                setEditingCategory({
+                  ...editingCategory,
+                  icon: e.target.value,
+                })
+              }
+            />
+          </div>
+        </div>
+        <div className="flex justify-end mt-4 space-x-2">
+          <AnimatedButton
+            variant="outline"
+            onClick={() => setEditingCategory(null)}
           >
-            <h3 className="text-lg font-semibold mb-4">Edit Category</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Name
-                </label>
-                <input
-                  type="text"
-                  className="form-input w-full"
-                  value={editingCategory.name}
-                  onChange={(e) =>
-                    setEditingCategory({ ...editingCategory, name: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Budget
-                </label>
-                <input
-                  type="number"
-                  className="form-input w-full"
-                  value={editingCategory.budget}
-                  onChange={(e) =>
-                    setEditingCategory({
-                      ...editingCategory,
-                      budget: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Color
-                </label>
-                <input
-                  type="color"
-                  className="w-full h-10"
-                  value={editingCategory.color}
-                  onChange={(e) =>
-                    setEditingCategory({
-                      ...editingCategory,
-                      color: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Icon
-                </label>
-                <input
-                  type="text"
-                  className="form-input w-full"
-                  value={editingCategory.icon}
-                  onChange={(e) =>
-                    setEditingCategory({
-                      ...editingCategory,
-                      icon: e.target.value,
-                    })
-                  }
-                />
-              </div>
-            </div>
-            <div className="flex justify-end mt-4 space-x-2">
-              <button
-                className="btn btn-outline"
-                onClick={() => setEditingCategory(null)}
-              >
-                Cancel
-              </button>
-              <button className="btn btn-primary" onClick={handleEditCategory}>
-                Save Changes
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            Cancel
+          </AnimatedButton>
+          <AnimatedButton
+            onClick={handleEditCategory}
+          >
+            Save Changes
+          </AnimatedButton>
+        </div>
+      </Modal>
     </motion.div>
   )
 }

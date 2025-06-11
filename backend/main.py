@@ -4,6 +4,7 @@ from extensions import db, jwt, cache, migrate
 from config import Config
 import logging
 from middleware.cors import handle_options_request
+from routes import register_routes
 
 # Basic logging configuration
 logging.basicConfig(level=logging.INFO)
@@ -21,7 +22,7 @@ def create_app():
 
     # Initialize extensions
     CORS(app, 
-         resources={r"/api/*": {
+         resources={r"/*": {  # Allow all routes
              "origins": app.config['CORS_ORIGINS'],
              "methods": app.config['CORS_METHODS'],
              "allow_headers": app.config['CORS_ALLOW_HEADERS'],
@@ -41,24 +42,12 @@ def create_app():
         if response:
             return response
 
-    # Register blueprints with /api prefix
-    from routes.auth import auth_bp
-    from routes.transactions import transactions_bp
-    from routes.categories import categories_bp
-    from routes.budgets import budgets_bp
-    from routes.users import users_bp
-    from routes.reports import reports_bp
-    from routes.dashboard import dashboard_bp
-    from routes.notifications import notifications_bp
+    # Register all routes
+    register_routes(app)
 
-    app.register_blueprint(auth_bp, url_prefix='/api/auth')
-    app.register_blueprint(transactions_bp, url_prefix='/api/transactions')
-    app.register_blueprint(categories_bp, url_prefix='/api/categories')
-    app.register_blueprint(budgets_bp, url_prefix='/api/budgets')
-    app.register_blueprint(users_bp, url_prefix='/api/users')
-    app.register_blueprint(reports_bp, url_prefix='/api/reports')
-    app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
-    app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
+    # Create database tables
+    with app.app_context():
+        db.create_all()
 
     return app
 

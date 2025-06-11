@@ -1,6 +1,7 @@
 // frontend/src/services/dashboardService.js
 
 import { dashboardAPI, transactionsAPI, categoriesAPI, budgetsAPI } from './api'
+import api from './api'
 
 // Fetch dashboard summary
 const getSummary = async () => {
@@ -112,42 +113,31 @@ const getExpenseTrends = async () => {
   }
 }
 
-const getDashboardData = async () => {
+const getDashboardData = async (timeframe = "all", customDateRange = null) => {
   try {
-    const [summary, recentTransactions, categoryBreakdown, budgetStatus, expenseTrends] = await Promise.all([
-      getSummary(),
-      getRecentTransactions(),
-      getCategoryBreakdown(),
-      getBudgetStatus(),
-      getExpenseTrends()
-    ])
+    let url = '/dashboard'
+    const params = new URLSearchParams()
 
-    return {
-      summary,
-      recentTransactions,
-      categoryBreakdown,
-      budgetStatus,
-      expenseTrends
+    if (timeframe === "today") {
+      params.append('timeframe', 'today')
+    } else if (timeframe === "month") {
+      params.append('timeframe', 'month')
+    } else if (timeframe === "custom" && customDateRange) {
+      params.append('timeframe', 'custom')
+      params.append('start_date', customDateRange.start_date)
+      params.append('end_date', customDateRange.end_date)
     }
+
+    const queryString = params.toString()
+    if (queryString) {
+      url += `?${queryString}`
+    }
+
+    const response = await api.get(url)
+    return response.data
   } catch (error) {
     console.error('Error fetching dashboard data:', error)
-    // Return default data structure even if there's an error
-    return {
-      summary: {
-        totalExpenses: 0,
-        totalIncome: 0,
-        currentBalance: 0,
-        savings: 0,
-        expenseTrend: "",
-        incomeTrend: "",
-        balanceTrend: "",
-        savingsRate: "0%"
-      },
-      recentTransactions: [],
-      categoryBreakdown: [],
-      budgetStatus: [],
-      expenseTrends: []
-    }
+    throw error
   }
 }
 

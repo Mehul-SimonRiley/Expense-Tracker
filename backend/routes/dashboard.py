@@ -3,103 +3,183 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.transaction import Transaction
 from models.category import Category
 from models.budget import Budget
+from models.user import User
 from extensions import db
 from datetime import datetime, timedelta
-from sqlalchemy import func
+from sqlalchemy import func, and_
 import logging
 
 logger = logging.getLogger(__name__)
 dashboard_bp = Blueprint('dashboard', __name__)
 
-@dashboard_bp.route('/summary', methods=['GET'])
-@jwt_required()
-def get_summary():
-    current_user_id = get_jwt_identity()
-    
-    # Get current month's start and end dates
+def get_date_range(timeframe, start_date=None, end_date=None):
     today = datetime.now().date()
-    month_start = today.replace(day=1)
-    next_month = month_start.replace(day=28) + timedelta(days=4)
-    month_end = next_month - timedelta(days=next_month.day)
+    if timeframe == "today":
+        return today, today
+    elif timeframe == "month":
+        start = today.replace(day=1)
+        if today.month == 12:
+            end = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
+        else:
+            end = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
+        return start, end
+    elif timeframe == "custom" and start_date and end_date:
+        try:
+            start = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end = datetime.strptime(end_date, '%Y-%m-%d').date()
+            return start, end
+        except ValueError as e:
+            logger.error(f"Invalid date format: {e}")
+            return None, None
+    else:
+        # Default to all time
+        return None, None
+
+@dashboard_bp.route('', methods=['GET'])
+@jwt_required()
+def get_dashboard_data():
+    try:
+        user_id = get_jwt_identity()
+        timeframe = request.args.get('timeframe', 'all')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+
+        logger.info(f"Fetching dashboard data for user {user_id} with timeframe: {timeframe}")
+        if timeframe == "custom":
+            logger.info(f"Custom date range: {start_date} to {end_date}")
+
+        start, end = get_date_range(timeframe, start_date, end_date)
+        date_filter = []
+        if start and end:
+            date_filter = [Transaction.date >= start, Transaction.date <= end]
+
+        # Get summary data
+        summary_query = db.session.query(
+            func.sum(Transaction.amount).filter(Transaction.type == 'expense').label('total_expenses'),
+            func.sum(Transaction.amount).filter(Transaction.type == 'income').label('total_income')
+        ).filter(Transaction.user_id == user_id, *date_filter)
+
+        summary = summary_query.first()
+        total_expenses = summary.total_expenses or 0
+        total_income = summary.total_income or 0
+        current_balance = total_income - total_expenses
+        savings = max(0, current_balance)
+        savings_rate = (savings / total_income * 100) if total_income > 0 else 0
+
+        # Get recent transactions
+        recent_transactions = Transaction.query.filter(
+            Transaction.user_id == user_id,
+            *date_filter
+        ).order_by(Transaction.date.desc()).limit(5).all()
+
+        # Get category breakdown
+        category_breakdown = db.session.query(
+            Category.name,
+            func.sum(Transaction.amount).label('total')
+        ).join(Transaction).filter(
+            Transaction.user_id == user_id,
+            Transaction.type == 'expense',
+            *date_filter
+        ).group_by(Category.name).all()
+
+        # Get budget status
+        budget_status = db.session.query(
+            Category.name,
+            Budget.amount.label('budget'),
+            func.sum(Transaction.amount).label('spent')
+        ).join(Budget).outerjoin(
+            Transaction,
+            and_(
+                Transaction.category_id == Category.id,
+                Transaction.user_id == user_id,
+                *date_filter
+            )
+        ).filter(
+            Budget.user_id == user_id
+        ).group_by(Category.name, Budget.amount).all()
+
+        # Get expense trends
+        expense_trends = db.session.query(
+            func.strftime('%Y-%m', Transaction.date).label('month'),
+            func.sum(Transaction.amount).label('total')
+        ).filter(
+            Transaction.user_id == user_id,
+            Transaction.type == 'expense',
+            *date_filter
+        ).group_by('month').order_by('month').all()
+
+        response_data = {
+            'summary': {
+                'totalExpenses': total_expenses,
+                'totalIncome': total_income,
+                'currentBalance': current_balance,
+                'savings': savings,
+                'savingsRate': f"{savings_rate:.1f}%",
+                'expenseTrend': calculate_trend(expense_trends),
+                'incomeTrend': calculate_trend(expense_trends, 'income'),
+                'balanceTrend': calculate_balance_trend(current_balance, total_income)
+            },
+            'recentTransactions': [{
+                'id': t.id,
+                'description': t.description,
+                'amount': t.amount,
+                'type': t.type,
+                'date': t.date.isoformat(),
+                'category': t.category.name if t.category else None
+            } for t in recent_transactions],
+            'categoryBreakdown': [{
+                'name': c.name,
+                'total': c.total
+            } for c in category_breakdown],
+            'budgetStatus': [{
+                'category': b.name,
+                'budget': b.budget,
+                'spent': b.spent or 0
+            } for b in budget_status],
+            'expenseTrends': [{
+                'month': t.month,
+                'total': t.total
+            } for t in expense_trends]
+        }
+
+        logger.info(f"Successfully fetched dashboard data for user {user_id}")
+        return jsonify(response_data)
+
+    except Exception as e:
+        logger.error(f"Error fetching dashboard data: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+def calculate_trend(trends, type='expense'):
+    if not trends or len(trends) < 2:
+        return "No trend data available"
     
-    # Get previous month's dates for trend calculation
-    prev_month_end = month_start - timedelta(days=1)
-    prev_month_start = prev_month_end.replace(day=1)
+    current = trends[-1].total
+    previous = trends[-2].total
     
-    # Calculate total income and expenses (all time)
-    all_time_totals = db.session.query(
-        Transaction.type,
-        func.sum(Transaction.amount).label('total')
-    ).filter(
-        Transaction.user_id == current_user_id
-    ).group_by(Transaction.type).all()
+    if previous == 0:
+        return "No previous data"
     
-    total_income = 0.0
-    total_expenses = 0.0
-    for type_, total in all_time_totals:
-        if type_ == 'income':
-            total_income = round(total, 2)
-        elif type_ == 'expense':
-            total_expenses = round(total, 2)
+    change = ((current - previous) / previous) * 100
     
-    # Calculate current month's totals
-    current_month_totals = db.session.query(
-        Transaction.type,
-        func.sum(Transaction.amount).label('total')
-    ).filter(
-        Transaction.user_id == current_user_id,
-        Transaction.date >= month_start,
-        Transaction.date <= month_end
-    ).group_by(Transaction.type).all()
+    if change > 5:
+        return f"↑ {change:.1f}% increase"
+    elif change < -5:
+        return f"↓ {abs(change):.1f}% decrease"
+    else:
+        return "→ Stable"
+
+def calculate_balance_trend(current_balance, total_income):
+    if total_income == 0:
+        return "No income data"
     
-    current_month_income = 0.0
-    current_month_expenses = 0.0
-    for type_, total in current_month_totals:
-        if type_ == 'income':
-            current_month_income = round(total, 2)
-        elif type_ == 'expense':
-            current_month_expenses = round(total, 2)
+    savings_rate = (current_balance / total_income) * 100
     
-    # Calculate previous month's totals for trend
-    prev_month_totals = db.session.query(
-        Transaction.type,
-        func.sum(Transaction.amount).label('total')
-    ).filter(
-        Transaction.user_id == current_user_id,
-        Transaction.date >= prev_month_start,
-        Transaction.date <= prev_month_end
-    ).group_by(Transaction.type).all()
-    
-    prev_month_income = 0.0
-    prev_month_expenses = 0.0
-    for type_, total in prev_month_totals:
-        if type_ == 'income':
-            prev_month_income = round(total, 2)
-        elif type_ == 'expense':
-            prev_month_expenses = round(total, 2)
-    
-    # Calculate trends (percentage change from previous month)
-    expense_trend = round(((current_month_expenses - prev_month_expenses) / prev_month_expenses * 100) if prev_month_expenses > 0 else 0, 2)
-    income_trend = round(((current_month_income - prev_month_income) / prev_month_income * 100) if prev_month_income > 0 else 0, 2)
-    
-    # Calculate current balance and savings
-    current_balance = round(total_income - total_expenses, 2)
-    savings = current_balance
-    savings_rate = round((savings / total_income * 100) if total_income > 0 else 0, 2)
-    balance_trend = round(((current_month_income - current_month_expenses) - (prev_month_income - prev_month_expenses)) / abs(prev_month_income - prev_month_expenses) * 100 if (prev_month_income - prev_month_expenses) != 0 else 0, 2)
-    
-    summary = {
-        'total_expenses': total_expenses,
-        'total_income': total_income,
-        'current_balance': current_balance,
-        'savings': savings,
-        'expense_trend': expense_trend,
-        'income_trend': income_trend,
-        'balance_trend': balance_trend,
-        'savings_rate': savings_rate
-    }
-    
-    return jsonify(summary)
+    if savings_rate > 20:
+        return f"↑ {savings_rate:.1f}% savings rate"
+    elif savings_rate < 10:
+        return f"↓ {savings_rate:.1f}% savings rate"
+    else:
+        return f"→ {savings_rate:.1f}% savings rate"
 
 @dashboard_bp.route('/recent-transactions', methods=['GET'])
 @jwt_required()
@@ -206,16 +286,3 @@ def get_budget_status():
     except Exception as e:
         logger.error(f'Error fetching budget status: {str(e)}')
         return jsonify({'error': 'Failed to fetch budget status'}), 500
-
-def calculate_trend(current, previous):
-    """Calculate trend percentage and return formatted string."""
-    if previous == 0:
-        return 'No previous data'
-    
-    change = ((current - previous) / previous) * 100
-    if change > 0:
-        return f'+{change:.1f}% from last month'
-    elif change < 0:
-        return f'{change:.1f}% from last month'
-    else:
-        return 'Same as last month'

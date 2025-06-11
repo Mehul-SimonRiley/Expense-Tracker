@@ -11,7 +11,8 @@ instance_path = os.path.join(basedir, 'instance')
 
 class Config:
     # Flask
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'default-secret-key-for-development-1234567890')
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key'
+    DEBUG = True
     
     # Database
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
@@ -19,12 +20,22 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # JWT
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'default-jwt-secret-key-for-development-1234567890')
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'jwt-secret-key'
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     JWT_TOKEN_LOCATION = ['headers']
     JWT_HEADER_NAME = 'Authorization'
     JWT_HEADER_TYPE = 'Bearer'
+    JWT_ERROR_MESSAGE_KEY = 'msg'
+    JWT_ALGORITHM = 'HS256'
+    JWT_DECODE_ALGORITHMS = ['HS256']
+    JWT_ENCODE_NBF = False
+    JWT_ENCODE_IAT = True
+    JWT_ENCODE_JTI = False
+    JWT_JSON_KEY = 'access_token'
+    JWT_REFRESH_JSON_KEY = 'refresh_token'
+    JWT_ACCESS_CSRF_HEADER_NAME = 'X-CSRF-TOKEN'
+    JWT_REFRESH_CSRF_HEADER_NAME = 'X-CSRF-REFRESH-TOKEN'
     
     # Cache
     CACHE_TYPE = 'simple'
@@ -38,12 +49,16 @@ class Config:
     CORS_HEADERS = 'Content-Type'
     
     # CORS
-    CORS_ORIGINS = os.environ.get('CORS_ORIGINS', "http://localhost:3000,http://127.0.0.1:3000").split(',')
-    CORS_METHODS = ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"]
-    CORS_ALLOW_HEADERS = ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
-    CORS_EXPOSE_HEADERS = ["Content-Type", "Authorization"]
+    CORS_ORIGINS = ['http://localhost:3000']  # Add your frontend URL
+    CORS_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+    CORS_ALLOW_HEADERS = ['Content-Type', 'Authorization']
+    CORS_EXPOSE_HEADERS = ['Content-Type', 'Authorization']
     CORS_SUPPORTS_CREDENTIALS = True
     CORS_MAX_AGE = 3600
     CORS_SEND_WILDCARD = False
     CORS_AUTOMATIC_OPTIONS = True
     CORS_VARY_HEADER = True
+
+    # Other configurations
+    UPLOAD_FOLDER = 'uploads'
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size

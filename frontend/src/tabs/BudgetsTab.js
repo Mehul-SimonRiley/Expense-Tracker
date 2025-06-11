@@ -6,6 +6,8 @@ import { budgetsAPI, categoriesAPI } from "../services/api"
 import { formatCurrency } from '../utils/format'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { motion, AnimatePresence } from "framer-motion"
+import AnimatedButton from '../components/AnimatedButton'
+import Modal from '../components/Modal'
 
 export default function BudgetsTab() {
   const [timeframe, setTimeframe] = useState("month")
@@ -18,18 +20,49 @@ export default function BudgetsTab() {
   const [newBudget, setNewBudget] = useState({
     category_id: "",
     amount: "",
-    month: new Date().toISOString().slice(0, 7) // YYYY-MM format
+    start_date: new Date().toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0]
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showCustomPeriod, setShowCustomPeriod] = useState(false)
+  const [customDateRange, setCustomDateRange] = useState({
+    start_date: new Date().toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0]
   })
 
   useEffect(() => {
     fetchBudgets()
     fetchCategories()
-  }, [])
+  }, [timeframe, customDateRange])
 
   const fetchBudgets = async () => {
     try {
       setIsLoading(true)
-      const data = await budgetsAPI.getAll()
+      let data = await budgetsAPI.getAll()
+      
+      // Filter budgets based on timeframe
+      const now = new Date()
+      if (timeframe === 'month') {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        data = data.filter(budget => 
+          new Date(budget.start_date) >= startOfMonth && 
+          new Date(budget.end_date) <= endOfMonth
+        )
+      } else if (timeframe === 'next-month') {
+        const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+        const endOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0)
+        data = data.filter(budget => 
+          new Date(budget.start_date) >= startOfNextMonth && 
+          new Date(budget.end_date) <= endOfNextMonth
+        )
+      } else if (timeframe === 'custom') {
+        data = data.filter(budget => 
+          new Date(budget.start_date) >= new Date(customDateRange.start_date) && 
+          new Date(budget.end_date) <= new Date(customDateRange.end_date)
+        )
+      }
+      
       setBudgets(Array.isArray(data) ? data : [])
       setError(null)
     } catch (err) {
@@ -43,60 +76,61 @@ export default function BudgetsTab() {
 
   const fetchCategories = async () => {
     try {
-      const data = await categoriesAPI.getAll();
-      setCategories(Array.isArray(data) ? data : []);
+      const data = await categoriesAPI.getAll()
+      setCategories(Array.isArray(data) ? data : [])
     } catch (err) {
-      console.error('Error fetching categories:', err);
-      setCategories([]);
+      console.error('Error fetching categories:', err)
+      setCategories([])
     }
   }
 
   const handleAddBudget = async () => {
-    // Validate fields
-    if (!newBudget.category_id || !newBudget.amount || !newBudget.month) {
-      alert('Please fill all fields before adding a budget.');
-      return;
-    }
-    // Convert month to start_date and end_date
-    const [year, month] = newBudget.month.split('-');
-    const start_date = `${year}-${month}-01`;
-    // Get last day of month
-    const end_date = new Date(year, month, 0).toISOString().slice(0, 10);
-    // Prepare payload for backend
-    const payload = {
-      category_id: newBudget.category_id,
-      amount: newBudget.amount,
-      start_date,
-      end_date
-    };
-    console.log('Creating budget with:', payload);
+    setIsSubmitting(true)
     try {
+      // Validate fields
+      if (!newBudget.category_id || !newBudget.amount || !newBudget.start_date || !newBudget.end_date) {
+        alert('Please fill all fields before adding a budget.')
+        return
+      }
+
+      // Prepare payload for backend
+      const payload = {
+        category_id: parseInt(newBudget.category_id),
+        amount: parseFloat(newBudget.amount),
+        start_date: newBudget.start_date,
+        end_date: newBudget.end_date
+      }
+
       await budgetsAPI.create(payload)
       setNewBudget({
         category_id: "",
         amount: "",
-        month: new Date().toISOString().slice(0, 7)
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: new Date().toISOString().split('T')[0]
       })
       setShowAddForm(false)
-      // Refresh budgets list
       fetchBudgets()
     } catch (err) {
       console.error("Error adding budget:", err)
       alert("Failed to add budget. Please try again.")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   const handleEditBudget = async () => {
     if (!editingBudget) return
-
+    
+    setIsSubmitting(true)
     try {
       await budgetsAPI.update(editingBudget.id, editingBudget)
       setEditingBudget(null)
-      // Refresh budgets list
       fetchBudgets()
     } catch (err) {
       console.error("Error updating budget:", err)
       alert("Failed to update budget. Please try again.")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -104,12 +138,25 @@ export default function BudgetsTab() {
     if (window.confirm("Are you sure you want to delete this budget?")) {
       try {
         await budgetsAPI.delete(id)
-        // Refresh budgets list
         fetchBudgets()
       } catch (err) {
         console.error("Error deleting budget:", err)
         alert("Failed to delete budget. Please try again.")
       }
+    }
+  }
+
+  const handleTimeframeChange = (value) => {
+    setTimeframe(value)
+    if (value === 'custom') {
+      setShowCustomPeriod(true)
+    } else {
+      setShowCustomPeriod(false)
+      // Reset custom date range when switching away from custom
+      setCustomDateRange({
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: new Date().toISOString().split('T')[0]
+      })
     }
   }
 
@@ -151,17 +198,19 @@ export default function BudgetsTab() {
           <select
             className="form-select"
             value={timeframe}
-            onChange={(e) => setTimeframe(e.target.value)}
+            onChange={(e) => handleTimeframeChange(e.target.value)}
             style={{ width: "180px" }}
           >
             <option value="month">This Month</option>
             <option value="next-month">Next Month</option>
             <option value="custom">Custom Period</option>
           </select>
-          <button className="btn btn-primary" onClick={() => setShowAddForm(true)}>
-            <FiPlus />
+          <AnimatedButton
+            onClick={() => setShowAddForm(true)}
+            icon={FiPlus}
+          >
             Set Budget
-          </button>
+          </AnimatedButton>
         </div>
       </div>
 
@@ -204,29 +253,17 @@ export default function BudgetsTab() {
           <h2 className="text-xl font-bold">Budget Progress</h2>
         </div>
         <div className="p-4">
-          <div
-            style={{
-              height: "24px",
-              backgroundColor: "var(--border-color)",
-              borderRadius: "9999px",
-              overflow: "hidden",
-              marginBottom: "8px",
-            }}
-          >
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
             <div
+              className="h-2.5 rounded-full"
               style={{
-                width: `${Math.min(
-                  (totalSpent / totalBudget) * 100 || 0,
-                  100
-                )}%`,
-                height: "100%",
-                backgroundColor: "var(--primary-color)",
-                borderRadius: "9999px",
+                width: `${Math.min((totalSpent / totalBudget) * 100 || 0, 100)}%`,
+                backgroundColor: totalSpent > totalBudget ? '#ef4444' : '#3b82f6'
               }}
             ></div>
           </div>
-          <div className="flex justify-between text-sm text-muted">
-            <div>₹0</div>
+          <div className="flex justify-between text-sm text-gray-500 mt-2">
+            <div>{formatCurrency(0)}</div>
             <div>{formatCurrency(totalBudget)}</div>
           </div>
         </div>
@@ -256,48 +293,37 @@ export default function BudgetsTab() {
                 <div className="flex justify-between items-center">
                   <span>{budget.category_name}</span>
                   <div className="flex gap-2">
-                    <button
-                      className="btn btn-outline btn-sm"
+                    <AnimatedButton
+                      variant="outline"
+                      size="sm"
                       onClick={() => setEditingBudget(budget)}
                     >
                       <FiEdit2 size={14} />
                       Edit
-                    </button>
-                    <button
-                      className="btn btn-outline btn-sm text-red-500"
+                    </AnimatedButton>
+                    <AnimatedButton
+                      variant="outline"
+                      size="sm"
+                      className="text-red-500"
                       onClick={() => handleDeleteBudget(budget.id)}
                     >
                       <FiX size={14} />
                       Delete
-                    </button>
+                    </AnimatedButton>
                   </div>
                 </div>
-                <div className="flex justify-between text-sm text-muted mt-1">
+                <div className="flex justify-between text-sm text-gray-500 mt-1">
                   <div>Budgeted: {formatCurrency(budget.amount)}</div>
                   <div>Spent: {formatCurrency(budget.current_spending)}</div>
                 </div>
-                <div className="mt-2">
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                   <div
+                    className="h-2 rounded-full"
                     style={{
-                      width: "100%",
-                      height: "8px",
-                      backgroundColor: "var(--border-color)",
-                      borderRadius: "9999px",
-                      overflow: "hidden",
+                      width: `${Math.min((budget.current_spending / budget.amount) * 100 || 0, 100)}%`,
+                      backgroundColor: budget.current_spending > budget.amount ? '#ef4444' : '#3b82f6'
                     }}
-                  >
-                    <div
-                      style={{
-                        width: `${Math.min(((budget.current_spending) / budget.amount) * 100 || 0, 100)}%`,
-                        height: "100%",
-                        backgroundColor:
-                          budget.current_spending > budget.amount
-                            ? "var(--expense-color)"
-                            : "var(--primary-color)",
-                        borderRadius: "9999px",
-                      }}
-                    ></div>
-                  </div>
+                  ></div>
                 </div>
               </motion.div>
             ))}
@@ -305,143 +331,218 @@ export default function BudgetsTab() {
         </div>
       </motion.div>
 
-      {/* Add Budget Form */}
-      <AnimatePresence>
-        {showAddForm && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="bg-white rounded-lg shadow mb-6"
+      {/* Add Budget Modal */}
+      <Modal
+        isOpen={showAddForm}
+        onClose={() => setShowAddForm(false)}
+        title="Add New Budget"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Category
+            </label>
+            <select
+              className="form-select w-full"
+              value={newBudget.category_id}
+              onChange={(e) => setNewBudget({ ...newBudget, category_id: e.target.value })}
+            >
+              <option value="">Select Category</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Amount
+            </label>
+            <input
+              type="number"
+              className="form-input w-full"
+              placeholder="0.00"
+              value={newBudget.amount}
+              onChange={(e) => setNewBudget({ ...newBudget, amount: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Start Date
+            </label>
+            <input
+              type="date"
+              className="form-input w-full"
+              value={newBudget.start_date}
+              onChange={(e) => setNewBudget({ ...newBudget, start_date: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              End Date
+            </label>
+            <input
+              type="date"
+              className="form-input w-full"
+              value={newBudget.end_date}
+              onChange={(e) => setNewBudget({ ...newBudget, end_date: e.target.value })}
+            />
+          </div>
+        </div>
+        <div className="flex justify-end mt-4 space-x-2">
+          <AnimatedButton
+            variant="outline"
+            onClick={() => setShowAddForm(false)}
+            disabled={isSubmitting}
           >
-            <div className="card mb-6">
-              <div className="card-header">
-                <h2 className="card-title">Add New Budget</h2>
-                <button className="btn btn-outline btn-sm" onClick={() => setShowAddForm(false)}>
-                  <FiX />
-                </button>
-              </div>
-              <div className="card-content">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="form-group">
-                    <label className="form-label">Category</label>
-                    <select
-                      className="form-select"
-                      value={newBudget.category_id}
-                      onChange={(e) => setNewBudget({ ...newBudget, category_id: e.target.value })}
-                    >
-                      <option value="">Select Category</option>
-                      {categories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Amount</label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      placeholder="0.00"
-                      value={newBudget.amount}
-                      onChange={(e) => setNewBudget({ ...newBudget, amount: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Month</label>
-                    <input
-                      type="month"
-                      className="form-input"
-                      value={newBudget.month}
-                      onChange={(e) => setNewBudget({ ...newBudget, month: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="card-footer">
-                <div className="flex justify-end gap-2">
-                  <button className="btn btn-outline" onClick={() => setShowAddForm(false)}>
-                    Cancel
-                  </button>
-                  <button className="btn btn-primary" onClick={handleAddBudget}>
-                    Save Budget
-                  </button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            Cancel
+          </AnimatedButton>
+          <AnimatedButton
+            onClick={handleAddBudget}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Saving...' : 'Save Budget'}
+          </AnimatedButton>
+        </div>
+      </Modal>
 
-      {/* Edit Budget Form */}
-      <AnimatePresence>
-        {editingBudget && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="bg-white rounded-lg shadow mb-6"
+      {/* Edit Budget Modal */}
+      <Modal
+        isOpen={!!editingBudget}
+        onClose={() => setEditingBudget(null)}
+        title="Edit Budget"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Category
+            </label>
+            <select
+              className="form-select w-full"
+              value={editingBudget?.category_id || ''}
+              onChange={(e) => setEditingBudget({ ...editingBudget, category_id: e.target.value })}
+            >
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Amount
+            </label>
+            <input
+              type="number"
+              className="form-input w-full"
+              value={editingBudget?.amount || ''}
+              onChange={(e) => setEditingBudget({ ...editingBudget, amount: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Start Date
+            </label>
+            <input
+              type="date"
+              className="form-input w-full"
+              value={editingBudget?.start_date || ''}
+              onChange={(e) => setEditingBudget({ ...editingBudget, start_date: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              End Date
+            </label>
+            <input
+              type="date"
+              className="form-input w-full"
+              value={editingBudget?.end_date || ''}
+              onChange={(e) => setEditingBudget({ ...editingBudget, end_date: e.target.value })}
+            />
+          </div>
+        </div>
+        <div className="flex justify-end mt-4 space-x-2">
+          <AnimatedButton
+            variant="outline"
+            onClick={() => setEditingBudget(null)}
+            disabled={isSubmitting}
           >
-            <div className="card mb-6">
-              <div className="card-header">
-                <h2 className="card-title">Edit Budget</h2>
-                <button className="btn btn-outline btn-sm" onClick={() => setEditingBudget(null)}>
-                  <FiX />
-                </button>
-              </div>
-              <div className="card-content">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="form-group">
-                    <label className="form-label">Category</label>
-                    <select
-                      className="form-select"
-                      value={editingBudget.category_id}
-                      onChange={(e) => setEditingBudget({ ...editingBudget, category_id: e.target.value })}
-                    >
-                      {categories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Amount</label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      value={editingBudget.amount}
-                      onChange={(e) => setEditingBudget({ ...editingBudget, amount: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Month</label>
-                    <input
-                      type="month"
-                      className="form-input"
-                      value={editingBudget.month}
-                      onChange={(e) => setEditingBudget({ ...editingBudget, month: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="card-footer">
-                <div className="flex justify-end gap-2">
-                  <button className="btn btn-outline" onClick={() => setEditingBudget(null)}>
-                    Cancel
-                  </button>
-                  <button className="btn btn-primary" onClick={handleEditBudget}>
-                    Save Changes
-                  </button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            Cancel
+          </AnimatedButton>
+          <AnimatedButton
+            onClick={handleEditBudget}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Saving...' : 'Save Changes'}
+          </AnimatedButton>
+        </div>
+      </Modal>
+
+      {/* Custom Period Modal */}
+      <Modal
+        isOpen={showCustomPeriod}
+        onClose={() => {
+          setShowCustomPeriod(false)
+          if (timeframe !== 'custom') {
+            setTimeframe('month')
+          }
+        }}
+        title="Select Custom Period"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Start Date
+            </label>
+            <input
+              type="date"
+              className="form-input w-full"
+              value={customDateRange.start_date}
+              onChange={(e) => {
+                setCustomDateRange({ ...customDateRange, start_date: e.target.value })
+              }}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              End Date
+            </label>
+            <input
+              type="date"
+              className="form-input w-full"
+              value={customDateRange.end_date}
+              onChange={(e) => {
+                setCustomDateRange({ ...customDateRange, end_date: e.target.value })
+              }}
+            />
+          </div>
+        </div>
+        <div className="flex justify-end mt-4 space-x-2">
+          <AnimatedButton
+            variant="outline"
+            onClick={() => {
+              setShowCustomPeriod(false)
+              if (timeframe !== 'custom') {
+                setTimeframe('month')
+              }
+            }}
+          >
+            Cancel
+          </AnimatedButton>
+          <AnimatedButton
+            onClick={() => {
+              setTimeframe('custom')
+              fetchBudgets()
+              setShowCustomPeriod(false)
+            }}
+          >
+            Show
+          </AnimatedButton>
+        </div>
+      </Modal>
     </motion.div>
   )
 }

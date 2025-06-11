@@ -86,14 +86,14 @@ export const PieChart = ({ data, title }) => {
 }
 
 // Helper function to create expense breakdown data
-export const createExpenseBreakdownData = (expenses) => {
+export const createExpenseBreakdownData = (categoryBreakdown) => {
   return {
-    labels: expenses.map(exp => exp.category),
+    labels: categoryBreakdown.map(item => item.name),
     datasets: [
       {
-        label: 'Expenses',
-        data: expenses.map(exp => exp.amount),
-        backgroundColor: expenses.map((_, index) => 
+        label: 'Expenses by Category',
+        data: categoryBreakdown.map(item => item.total),
+        backgroundColor: categoryBreakdown.map((_, index) => 
           `hsl(${index * 30}, 70%, 50%)`
         ),
       },
@@ -101,34 +101,78 @@ export const createExpenseBreakdownData = (expenses) => {
   }
 }
 
-// Helper function to create trend data
-export const createTrendData = (data, label) => {
+// Helper function to create data for a single trend (e.g., Expense Trends)
+export const createSingleTrendData = (trendData, label, color = 'rgb(255, 99, 132)') => {
+  const trends = Array.isArray(trendData) ? trendData : [];
+
+  const allLabels = Array.from(new Set([
+    ...trends.map(item => item?.month).filter(Boolean),
+  ])).sort();
+
   return {
-    labels: data.map(item => item.date),
+    labels: allLabels,
     datasets: [
       {
         label: label,
-        data: data.map(item => item.amount),
-        borderColor: 'rgb(75, 192, 192)',
-        tension: 0.1,
+        data: Array.isArray(allLabels) ? allLabels.map(month => {
+          const trend = trends.find(item => item?.month === month);
+          return trend?.total ?? 0;
+        }) : [],
+        borderColor: color,
+        backgroundColor: color.replace('rgb', 'rgba').replace(')', ', 0.5)')
       },
     ],
-  }
+  };
+};
+
+// Helper function to create trend data for Income vs Expenses
+export const createIncomeExpenseTrendData = (expenseTrends, incomeTrends) => {
+  // Ensure inputs are arrays, defaulting to empty array if undefined or null
+  const expenses = Array.isArray(expenseTrends) ? expenseTrends : [];
+  const incomes = Array.isArray(incomeTrends) ? incomeTrends : [];
+
+  // Merge labels from both trends to ensure all months are included
+  const allLabels = Array.from(new Set([
+    ...expenses.map(item => item?.month).filter(Boolean),
+    ...incomes.map(item => item?.month).filter(Boolean)
+  ])).sort(); // Sort labels chronologically if possible, or alphabetically
+
+  return {
+    labels: allLabels,
+    datasets: [
+      {
+        label: 'Expenses',
+        data: Array.isArray(allLabels) ? allLabels.map(month => {
+          const trend = expenses.find(item => item?.month === month);
+          return trend?.total ?? 0; // Safely access total or default to 0
+        }) : [],
+        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+      },
+      {
+        label: 'Income',
+        data: Array.isArray(allLabels) ? allLabels.map(month => {
+          const trend = incomes.find(item => item?.month === month);
+          return trend?.total ?? 0; // Safely access total or default to 0
+        }) : [],
+        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+      },
+    ],
+  };
 }
 
 // Helper function to create budget vs actual data
-export const createBudgetVsActualData = (budgets) => {
+export const createBudgetVsActualData = (budgetStatus) => {
   return {
-    labels: budgets.map(budget => budget.category),
+    labels: budgetStatus.map(item => item.category),
     datasets: [
       {
         label: 'Budget',
-        data: budgets.map(budget => budget.limit),
+        data: budgetStatus.map(item => item.budget),
         backgroundColor: 'rgba(75, 192, 192, 0.5)',
       },
       {
-        label: 'Actual',
-        data: budgets.map(budget => budget.spent),
+        label: 'Spent',
+        data: budgetStatus.map(item => item.spent),
         backgroundColor: 'rgba(255, 99, 132, 0.5)',
       },
     ],

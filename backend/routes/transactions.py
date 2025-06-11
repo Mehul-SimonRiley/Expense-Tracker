@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 transactions_bp = Blueprint('transactions', __name__)
 
-@transactions_bp.route('/', methods=['GET'])
+@transactions_bp.route('', methods=['GET'])
 @jwt_required()
 def get_transactions():
     try:
@@ -48,7 +48,7 @@ def get_transactions():
         logger.error(f'Error fetching transactions: {str(e)}')
         return jsonify({'error': 'Failed to fetch transactions'}), 500
 
-@transactions_bp.route('/', methods=['POST'])
+@transactions_bp.route('', methods=['POST'])
 @jwt_required()
 def add_transaction():
     current_user_id = get_jwt_identity()

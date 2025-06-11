@@ -67,17 +67,41 @@ def upload_profile_picture():
 def update_profile():
     try:
         user_id = get_jwt_identity()
+        logger.info(f"Updating profile for user {user_id}")
+        
         data = request.json
         user = User.query.get(user_id)
+        
         if not user:
-            return jsonify({"message": "User not found"}), 404
-        user.name = data.get("name", user.name)
-        user.email = data.get("email", user.email)
-        user.phone = data.get("phone", user.phone)
+            return jsonify({
+                "status": "error",
+                "message": "User not found"
+            }), 404
+        
+        # Update only provided fields
+        if 'name' in data and data['name']:
+            user.name = data['name']
+        if 'email' in data and data['email']:
+            user.email = data['email']
+        if 'phone' in data and data['phone']:
+            user.phone = data['phone']
+        
         db.session.commit()
-        return jsonify({"message": "Profile updated successfully"})
+        
+        return jsonify({
+            "status": "success",
+            "message": "Profile updated successfully",
+            "data": {
+                "user": user.to_dict()
+            }
+        })
     except Exception as e:
-        return jsonify({"error": "An error occurred while updating the profile.", "details": str(e)}), 500
+        logger.error(f"Error in update_profile: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            "status": "error",
+            "message": "Failed to update profile"
+        }), 500
 
 # Update Preferences
 @settings_bp.route("/preferences", methods=["PUT"])
@@ -86,20 +110,39 @@ def update_profile():
 def update_preferences():
     try:
         user_id = get_jwt_identity()
+        logger.info(f"Updating preferences for user {user_id}")
+        
         data = request.json
-        user = User.query.get(user_id)
-        if not user:
-            return jsonify({"message": "User not found"}), 404
-
-        # Update user preferences
-        user.theme = data.get("theme", user.theme)
-        user.language = data.get("language", user.language)
-        user.date_format = data.get("date_format", user.date_format)
-        user.start_of_week = data.get("start_of_week", user.start_of_week)
+        settings = Settings.query.filter_by(user_id=user_id).first()
+        
+        if not settings:
+            settings = Settings(user_id=user_id)
+            db.session.add(settings)
+        
+        # Update only provided fields
+        if 'theme' in data:
+            settings.theme = data['theme']
+        if 'language' in data:
+            settings.language = data['language']
+        if 'date_format' in data:
+            settings.date_format = data['date_format']
+        
         db.session.commit()
-        return jsonify({"message": "Preferences updated successfully"})
+        
+        return jsonify({
+            "status": "success",
+            "message": "Preferences updated successfully",
+            "data": {
+                "settings": settings.to_dict()
+            }
+        })
     except Exception as e:
-        return jsonify({"error": "An error occurred while updating preferences.", "details": str(e)}), 500
+        logger.error(f"Error in update_preferences: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            "status": "error",
+            "message": "Failed to update preferences"
+        }), 500
 
 # Update Notifications
 @settings_bp.route("/notifications", methods=["PUT"])
@@ -108,18 +151,37 @@ def update_preferences():
 def update_notifications():
     try:
         user_id = get_jwt_identity()
+        logger.info(f"Updating notifications for user {user_id}")
+        
         data = request.json
-        user = User.query.get(user_id)
-        if not user:
-            return jsonify({"message": "User not found"}), 404
-
+        settings = Settings.query.filter_by(user_id=user_id).first()
+        
+        if not settings:
+            settings = Settings(user_id=user_id)
+            db.session.add(settings)
+        
         # Update notification settings
-        user.email_notifications = data.get("email_notifications", user.email_notifications)
-        user.push_notifications = data.get("push_notifications", user.push_notifications)
+        if 'email_notifications' in data:
+            settings.email_notifications = data['email_notifications']
+        if 'push_notifications' in data:
+            settings.push_notifications = data['push_notifications']
+        
         db.session.commit()
-        return jsonify({"message": "Notification settings updated successfully"})
+        
+        return jsonify({
+            "status": "success",
+            "message": "Notification settings updated successfully",
+            "data": {
+                "settings": settings.to_dict()
+            }
+        })
     except Exception as e:
-        return jsonify({"error": "An error occurred while updating notifications.", "details": str(e)}), 500
+        logger.error(f"Error in update_notifications: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            "status": "error",
+            "message": "Failed to update notification settings"
+        }), 500
 
 # Data Backup
 @settings_bp.route("/backup", methods=["POST"])
@@ -168,19 +230,26 @@ def delete_account():
 def get_settings():
     try:
         user_id = get_jwt_identity()
-        settings = Settings.query.filter_by(user_id=user_id).first()
+        logger.info(f"Fetching settings for user {user_id}")
         
+        # Get or create settings
+        settings = Settings.query.filter_by(user_id=user_id).first()
         if not settings:
-            # Create default settings if none exist
+            logger.info(f"Creating default settings for user {user_id}")
             settings = Settings(user_id=user_id)
             db.session.add(settings)
             db.session.commit()
-            
-        return jsonify(settings.to_dict())
         
+        return jsonify({
+            "status": "success",
+            "data": settings.to_dict()
+        })
     except Exception as e:
-        logger.error(f'Error fetching settings: {str(e)}')
-        return jsonify({'error': 'Failed to fetch settings'}), 500
+        logger.error(f"Error in get_settings: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": "Failed to fetch settings"
+        }), 500
 
 @settings_bp.route('/', methods=['PUT'])
 @jwt_required()

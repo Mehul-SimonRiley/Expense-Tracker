@@ -4,30 +4,27 @@ export const authService = {
     async login(email, password) {
         try {
             const response = await api.post('/auth/login', { email, password });
-            const { access_token, user } = response.data;
+            const { access_token, refresh_token, user } = response.data;
             
-            // Store both token and user data
+            // Store tokens
             localStorage.setItem('token', access_token);
-            localStorage.setItem('user', JSON.stringify(user));
+            localStorage.setItem('refreshToken', refresh_token);
             
-            return response.data;
+            // Store user data
+            this.updateUser(user);
+            
+            return { user };
         } catch (error) {
-            throw error.response?.data || error;
+            throw error;
         }
     },
 
     async register(userData) {
         try {
             const response = await api.post('/auth/register', userData);
-            const { access_token, user } = response.data;
-            
-            // Store both token and user data
-            localStorage.setItem('token', access_token);
-            localStorage.setItem('user', JSON.stringify(user));
-            
             return response.data;
         } catch (error) {
-            throw error.response?.data || error;
+            throw error;
         }
     },
 
@@ -37,45 +34,38 @@ export const authService = {
         } catch (error) {
             console.error('Logout error:', error);
         } finally {
-            // Always clear local storage on logout
             localStorage.removeItem('token');
-            localStorage.removeItem('user');
+            localStorage.removeItem('refreshToken');
+            this.updateUser(null);
         }
     },
 
     async getCurrentUser() {
         try {
-            // First try to get from localStorage
-            const storedUser = localStorage.getItem('user');
-            if (storedUser) {
-                return JSON.parse(storedUser);
-            }
-
-            // If not in localStorage, fetch from API
-            const response = await api.get('/users/profile');
+            const response = await api.get('/auth/profile');
             const user = response.data;
-            
-            // Update localStorage with fresh data
-            localStorage.setItem('user', JSON.stringify(user));
-            
+            this.updateUser(user);
             return user;
         } catch (error) {
-            // If there's an error, clear potentially invalid data
-            localStorage.removeItem('user');
+            if (error.response?.status === 401) {
+                this.logout();
+            }
             throw error;
         }
     },
 
-    updateUser(userData) {
-        if (userData) {
-            localStorage.setItem('user', JSON.stringify(userData));
+    updateUser(user) {
+        if (user) {
+            localStorage.setItem('user', JSON.stringify(user));
+        } else {
+            localStorage.removeItem('user');
         }
     },
 
     async updateProfile(profileData) {
         try {
-            const response = await api.put('/users/profile', profileData);
-            const updatedUser = response.data;
+            const response = await api.put('/settings/profile', profileData);
+            const updatedUser = response.data.user;
             
             // Update localStorage with new user data
             this.updateUser(updatedUser);

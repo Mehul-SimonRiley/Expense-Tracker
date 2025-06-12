@@ -443,21 +443,27 @@ export const authService = {
         }
     },
 
-    logout() {
+    async logout() {
         try {
-            // Clear all auth data
+            await api.post('/auth/logout');
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            // Clear all possible token and user data storage
+            localStorage.removeItem('token');
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
             localStorage.removeItem('user');
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('accessToken');
+            sessionStorage.removeItem('refreshToken');
+            sessionStorage.removeItem('user');
             
-            // Remove auth header
+            // Clear any auth headers
             delete api.defaults.headers.common['Authorization'];
             
-            // Clear any other app state if needed
+            // Force reload the page to clear any in-memory state
             window.location.href = '/login';
-        } catch (error) {
-            console.error('Logout error:', error);
-            throw error;
         }
     },
 

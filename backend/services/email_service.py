@@ -51,14 +51,14 @@ class EmailService:
             
             # Create email message
             msg = Message(
-                'Verify Your Email - Expense Tracker',
+                'Verify Your Email - Traxpense',
                 sender=self.app.config['MAIL_DEFAULT_SENDER'],
                 recipients=[email]
             )
             
             msg.body = f'''Hello,
 
-Thank you for registering with Expense Tracker. To verify your email address, please use the following verification code:
+Thank you for registering with Traxpense. To verify your email address, please use the following verification code:
 
 {verification.code}
 
@@ -67,19 +67,19 @@ This code will expire in 15 minutes.
 If you did not request this verification, please ignore this email.
 
 Best regards,
-Expense Tracker Team'''
+Traxpense Team'''
             
             msg.html = f'''
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #333;">Verify Your Email</h2>
-                <p>Thank you for registering with Expense Tracker. To verify your email address, please use the following verification code:</p>
+                <p>Thank you for registering with Traxpense. To verify your email address, please use the following verification code:</p>
                 <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; text-align: center; margin: 20px 0;">
                     <h1 style="color: #007bff; margin: 0;">{verification.code}</h1>
                 </div>
                 <p style="color: #666;">This code will expire in 15 minutes.</p>
                 <p style="color: #666;">If you did not request this verification, please ignore this email.</p>
                 <hr style="border: 1px solid #eee; margin: 20px 0;">
-                <p style="color: #999; font-size: 12px;">Best regards,<br>Expense Tracker Team</p>
+                <p style="color: #999; font-size: 12px;">Best regards,<br>Traxpense Team</p>
             </div>
             '''
             

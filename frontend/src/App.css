@@ -560,7 +560,7 @@ body {
 
 .text-muted {
   color: var(--text-muted);
-}
+  }
 
 /* Danger Zone */
 .danger-zone {
@@ -651,7 +651,7 @@ body {
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.3s;
-}
+  }
 
 .btn-secondary:hover {
     background-color: #5a6268;

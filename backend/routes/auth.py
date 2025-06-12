@@ -4,151 +4,161 @@ from extensions import db, jwt
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 import logging
 from flask import current_app
+from services.email_service import EmailService
 
 logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint('auth', __name__)
+email_service = None
+
+def init_email_service(app):
+    global email_service
+    email_service = EmailService(app)
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
-    logger.info("Starting registration process")
-    data = request.get_json()
-    logger.info(f"Received registration data: {data}")
-
-    name = data.get('name')
-    email = data.get('email')
-    password = data.get('password')
-
-    if not all([name, email, password]):
-        logger.error("Missing required fields in registration data")
-        return jsonify({"msg": "Missing required fields (name, email, password)"}), 400
-
-    if User.query.filter_by(email=email).first():
-        logger.error(f"User with email {email} already exists")
-        return jsonify({"msg": "Email already exists"}), 400
-
     try:
-        user = User(name=name, email=email)
-        user.set_password(password)
+        data = request.json
+        logger.info(f"Registration attempt for email: {data.get('email')}")
+        
+        # Check if user already exists
+        if User.query.filter_by(email=data['email']).first():
+            logger.warning(f"Registration failed: Email {data.get('email')} already registered")
+            return jsonify({"error": "Email already registered"}), 400
+        
+        # Create new user
+        user = User(
+            name=data['name'],
+            email=data['email']
+        )
+        user.set_password(data['password'])
+        
         db.session.add(user)
-        db.session.flush() # Get the user ID before commit for categories
-        logger.info(f"User object created for {email}")
-
-        # Create default categories
-        default_categories = [
-            ('Food & Dining', '#FF5733', '🍽️'),
-            ('Transportation', '#33FF57', '🚗'),
-            ('Shopping', '#3357FF', '🛍️'),
-            ('Bills & Utilities', '#FF33F5', '💡'),
-            ('Entertainment', '#33FFF5', '🎮'),
-            ('Health', '#F5FF33', '🏥'),
-            ('Travel', '#FF8033', '✈️'),
-            ('Education', '#3380FF', '📚'),
-            ('Salary', '#33FF80', '💰'),
-            ('Investments', '#8033FF', '📈'),
-            ('Other Income', '#FF3380', '💵'),
-            ('Miscellaneous', '#808080', '📌')
-        ]
-
-        for cat_name, color, icon in default_categories:
-            category = Category(
-                user_id=user.id,
-                name=cat_name,
-                color=color,
-                icon=icon
-            )
-            db.session.add(category)
-        logger.info(f"Default categories added for user {user.id}")
-
         db.session.commit()
-        logger.info(f"User {user.id} and default categories saved to database successfully")
-
-        # Convert user.id to string for JWT identity
-        user_id = str(user.id)
-        access_token = create_access_token(identity=user_id)
-        refresh_token = create_refresh_token(identity=user_id)
-        logger.info(f"Tokens created for user {user_id}")
-
+        logger.info(f"User created successfully with ID: {user.id}")
+        
+        # Send verification email
+        if email_service:
+            logger.info("Email service available, attempting to send verification email")
+            success = email_service.send_verification_email(user.email)
+            if not success:
+                logger.error("Failed to send verification email")
+                return jsonify({"error": "Failed to send verification email"}), 500
+        else:
+            logger.error("Email service not initialized")
+            return jsonify({"error": "Email service not configured"}), 500
+        
         return jsonify({
-            "msg": "User created successfully",
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "user": user.to_dict()
+            "message": "Registration successful. Please check your email for verification code.",
+            "user_id": user.id
         }), 201
-
+        
     except Exception as e:
+        logger.error(f"Error in registration: {str(e)}")
+        logger.exception("Full traceback:")
         db.session.rollback()
-        logger.error(f"Registration error for {email}: {str(e)}")
-        return jsonify({"msg": f"Registration failed: {str(e)}"}), 500
+        return jsonify({"error": "Registration failed"}), 500
+
+@auth_bp.route('/verify-email', methods=['POST'])
+def verify_email():
+    try:
+        data = request.json
+        email = data.get('email')
+        code = data.get('code')
+        
+        if not email or not code:
+            return jsonify({"error": "Email and verification code are required"}), 400
+        
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        if user.is_email_verified:
+            return jsonify({"error": "Email already verified"}), 400
+        
+        success, message = email_service.verify_code(email, code)
+        if success:
+            user.is_email_verified = True
+            db.session.commit()
+            return jsonify({"message": "Email verified successfully"}), 200
+        else:
+            return jsonify({"error": message}), 400
+            
+    except Exception as e:
+        logger.error(f"Error in email verification: {str(e)}")
+        return jsonify({"error": "Verification failed"}), 500
+
+@auth_bp.route('/resend-verification', methods=['POST'])
+def resend_verification():
+    try:
+        data = request.json
+        email = data.get('email')
+        
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
+        
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        if user.is_email_verified:
+            return jsonify({"error": "Email already verified"}), 400
+        
+        if email_service:
+            email_service.send_verification_email(email)
+            return jsonify({"message": "Verification email sent"}), 200
+        else:
+            return jsonify({"error": "Email service not configured"}), 500
+            
+    except Exception as e:
+        logger.error(f"Error in resending verification: {str(e)}")
+        return jsonify({"error": "Failed to resend verification"}), 500
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
     try:
-        data = request.get_json()
+        data = request.json
         email = data.get('email')
         password = data.get('password')
-        logger.info(f"Login attempt for email: {email}")
-
-        if not email or not password:
-            logger.error("Missing email or password in login request")
-            return jsonify({"msg": "Missing email or password"}), 400
-
-        user = User.query.filter_by(email=email).first()
-        if not user:
-            logger.warning(f"User not found for email: {email}")
-            return jsonify({"msg": "Invalid email or password"}), 401
-
-        if not user.check_password(password):
-            logger.warning(f"Invalid password for user: {email}")
-            return jsonify({"msg": "Invalid email or password"}), 401
-
-        # Convert user.id to string for JWT identity
-        user_id = str(user.id)
-        logger.info(f"Creating tokens for user ID: {user_id}")
         
-        try:
-            access_token = create_access_token(identity=user_id)
-            refresh_token = create_refresh_token(identity=user_id)
-            logger.info(f"Tokens created successfully for user: {user_id}")
-            
+        if not email or not password:
+            return jsonify({"error": "Email and password are required"}), 400
+        
+        user = User.query.filter_by(email=email).first()
+        
+        if not user or not user.check_password(password):
+            return jsonify({"error": "Invalid email or password"}), 401
+        
+        if not user.is_email_verified:
             return jsonify({
-                "msg": "Login successful",
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-                "user": user.to_dict()
-            })
-        except Exception as e:
-            logger.error(f"Token creation error: {str(e)}")
-            return jsonify({"msg": "Authentication failed - token creation error"}), 500
-            
-    except Exception as e:
-        logger.error(f"Login error: {str(e)}")
-        return jsonify({"msg": "Login failed"}), 500
-
-@auth_bp.route('/refresh', methods=['POST'])
-def refresh():
-    try:
-        refresh_token = request.json.get('refresh_token')
-        if not refresh_token:
-            return jsonify({"msg": "Missing refresh token"}), 400
-
-        # Verify the refresh token
-        try:
-            user_id = jwt.decode(refresh_token, current_app.config['JWT_SECRET_KEY'], algorithms=[current_app.config['JWT_ALGORITHM']])['sub']
-        except Exception as e:
-            logger.error(f"Invalid refresh token: {str(e)}")
-            return jsonify({"msg": "Invalid refresh token"}), 401
-
-        # Create new access token
-        access_token = create_access_token(identity=user_id)
+                "error": "Email not verified",
+                "user_id": user.id,
+                "email": user.email
+            }), 403
+        
+        access_token = create_access_token(identity=user.id)
+        refresh_token = create_refresh_token(identity=user.id)
         
         return jsonify({
-            "msg": "Token refreshed successfully",
-            "access_token": access_token
-        })
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "user": user.to_dict()
+        }), 200
+        
     except Exception as e:
-        logger.error(f"Token refresh error: {str(e)}")
-        return jsonify({"msg": "Failed to refresh token"}), 500
+        logger.error(f"Error in login: {str(e)}")
+        return jsonify({"error": "Login failed"}), 500
+
+@auth_bp.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+    try:
+        current_user_id = get_jwt_identity()
+        access_token = create_access_token(identity=current_user_id)
+        return jsonify({"access_token": access_token}), 200
+    except Exception as e:
+        logger.error(f"Error in token refresh: {str(e)}")
+        return jsonify({"error": "Token refresh failed"}), 500
 
 @auth_bp.route('/profile', methods=['GET'])
 @jwt_required()

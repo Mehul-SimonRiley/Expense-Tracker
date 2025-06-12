@@ -74,7 +74,7 @@ def update_profile():
         
         if not user:
             return jsonify({"error": "User not found"}), 404
-        
+
         # Update profile fields
         if 'name' in data:
             user.name = data['name']
@@ -90,7 +90,7 @@ def update_profile():
             user.occupation = data['occupation']
         if 'location' in data:
             user.location = data['location']
-        
+
         db.session.commit()
         
         return jsonify({

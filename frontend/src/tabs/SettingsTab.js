@@ -223,7 +223,7 @@ export default function SettingsTab({ onError }) {
 
   // Save settings function
   const saveSettings = async (section, data) => {
-    try {
+      try {
       setIsLoading(true);
       setSaveStatus(null);
 
@@ -262,7 +262,7 @@ export default function SettingsTab({ onError }) {
             push_notifications: data.pushNotifications,
             notification_frequency: data.notificationFrequency,
             quiet_hours: data.quietHours,
-          });
+        });
           break;
         default:
           throw new Error('Invalid section');
@@ -331,16 +331,16 @@ export default function SettingsTab({ onError }) {
               {settingsNavigation.map((item) => {
                 const Icon = item.icon
                 return (
-                  <button
+                <button
                     key={item.id}
                     className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors settings-tab-item ${
                       activeSection === item.id ? "active" : ""
                     }`}
                     onClick={() => setActiveSection(item.id)}
-                  >
+                >
                     <Icon className="w-5 h-5" />
                     {item.label}
-                  </button>
+                </button>
                 )
               })}
             </nav>
@@ -381,7 +381,7 @@ export default function SettingsTab({ onError }) {
                       <h3 className="font-medium">Profile Picture</h3>
                       <p className="text-sm text-muted">Upload a new profile picture. Max size: 5MB</p>
                     </div>
-                  </div>
+                </div>
 
                   {/* Personal Information */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -486,14 +486,14 @@ export default function SettingsTab({ onError }) {
               <div className="card-header">
                 <h2 className="card-title">Security Settings</h2>
                 <p className="text-sm text-muted">Manage your account security and privacy</p>
-              </div>
+                </div>
               <div className="card-content">
                 <div className="space-y-6">
                   {/* Change Password */}
                   <div>
                     <h3 className="text-lg font-medium mb-4">Change Password</h3>
-                    <div className="grid grid-cols-1 gap-4">
-                      <div className="form-group">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="form-group">
                         <label className="form-label">Current Password</label>
                         <div className="relative">
                           <input
@@ -591,7 +591,7 @@ export default function SettingsTab({ onError }) {
                           />
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                         </label>
-                      </div>
+                        </div>
                       <div className="form-group">
                         <label className="form-label">Session Timeout (minutes)</label>
                         <select
@@ -629,49 +629,49 @@ export default function SettingsTab({ onError }) {
               <div className="card-header">
                 <h2 className="card-title">Preferences</h2>
                 <p className="text-sm text-muted">Customize your app experience</p>
-              </div>
+                </div>
               <div className="card-content">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="form-group">
-                    <label className="form-label">Language</label>
-                    <select
-                      className="form-select"
-                      value={preferencesData.language}
-                      onChange={(e) => setPreferencesData({ ...preferencesData, language: e.target.value })}
-                    >
+                    <div className="form-group">
+                      <label className="form-label">Language</label>
+                      <select
+                        className="form-select"
+                        value={preferencesData.language}
+                        onChange={(e) => setPreferencesData({ ...preferencesData, language: e.target.value })}
+                      >
                       {languages.map((lang) => (
                         <option key={lang.code} value={lang.code}>
                           {lang.name}
                         </option>
                       ))}
-                    </select>
-                  </div>
+                      </select>
+                    </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Date Format</label>
-                    <select
-                      className="form-select"
+                    <div className="form-group">
+                      <label className="form-label">Date Format</label>
+                      <select
+                        className="form-select"
                       value={preferencesData.dateFormat}
                       onChange={(e) => setPreferencesData({ ...preferencesData, dateFormat: e.target.value })}
-                    >
+                      >
                       <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                      <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                      <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                        <option value="YYYY-MM-DD">YYYY-MM-DD</option>
                       <option value="DD MMM YYYY">DD MMM YYYY</option>
-                    </select>
-                  </div>
+                      </select>
+                    </div>
 
-                  <div className="form-group">
+                    <div className="form-group">
                     <label className="form-label">Time Format</label>
-                    <select
-                      className="form-select"
+                      <select
+                        className="form-select"
                       value={preferencesData.timeFormat}
                       onChange={(e) => setPreferencesData({ ...preferencesData, timeFormat: e.target.value })}
-                    >
+                      >
                       <option value="12">12-hour (AM/PM)</option>
                       <option value="24">24-hour</option>
-                    </select>
-                  </div>
+                      </select>
+                    </div>
 
                   <div className="form-group">
                     <label className="form-label">Timezone</label>
@@ -729,13 +729,13 @@ export default function SettingsTab({ onError }) {
                               {key === "securityAlerts" && "Important security notifications"}
                               {key === "promotionalEmails" && "Updates about new features and tips"}
                             </p>
-                          </div>
+                </div>
                           <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
+                          <input
+                            type="checkbox"
                               className="sr-only peer"
                               checked={value}
-                              onChange={(e) =>
+                            onChange={(e) =>
                                 setNotificationData({
                                   ...notificationData,
                                   emailNotifications: {
@@ -743,8 +743,8 @@ export default function SettingsTab({ onError }) {
                                     [key]: e.target.checked,
                                   },
                                 })
-                              }
-                            />
+                            }
+                          />
                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                           </label>
                         </div>
@@ -771,11 +771,11 @@ export default function SettingsTab({ onError }) {
                             </p>
                           </div>
                           <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
+                          <input
+                            type="checkbox"
                               className="sr-only peer"
                               checked={value}
-                              onChange={(e) =>
+                            onChange={(e) =>
                                 setNotificationData({
                                   ...notificationData,
                                   pushNotifications: {
@@ -783,8 +783,8 @@ export default function SettingsTab({ onError }) {
                                     [key]: e.target.checked,
                                   },
                                 })
-                              }
-                            />
+                            }
+                          />
                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                           </label>
                         </div>
@@ -801,9 +801,9 @@ export default function SettingsTab({ onError }) {
                         <select
                           className="form-select"
                           value={notificationData.notificationFrequency}
-                          onChange={(e) =>
+                            onChange={(e) =>
                             setNotificationData({ ...notificationData, notificationFrequency: e.target.value })
-                          }
+                            }
                         >
                           <option value="immediate">Immediate</option>
                           <option value="daily">Daily Digest</option>
@@ -811,15 +811,15 @@ export default function SettingsTab({ onError }) {
                         </select>
                       </div>
 
-                      <div className="form-group">
+                    <div className="form-group">
                         <div className="flex items-center justify-between mb-2">
                           <label className="form-label">Quiet Hours</label>
                           <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
+                          <input
+                            type="checkbox"
                               className="sr-only peer"
                               checked={notificationData.quietHours.enabled}
-                              onChange={(e) =>
+                            onChange={(e) =>
                                 setNotificationData({
                                   ...notificationData,
                                   quietHours: {
@@ -827,18 +827,18 @@ export default function SettingsTab({ onError }) {
                                     enabled: e.target.checked,
                                   },
                                 })
-                              }
-                            />
+                            }
+                          />
                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                           </label>
                         </div>
                         {notificationData.quietHours.enabled && (
                           <div className="grid grid-cols-2 gap-2">
-                            <input
+                          <input
                               type="time"
                               className="form-input"
                               value={notificationData.quietHours.startTime}
-                              onChange={(e) =>
+                            onChange={(e) =>
                                 setNotificationData({
                                   ...notificationData,
                                   quietHours: {
@@ -846,13 +846,13 @@ export default function SettingsTab({ onError }) {
                                     startTime: e.target.value,
                                   },
                                 })
-                              }
-                            />
-                            <input
+                            }
+                          />
+                          <input
                               type="time"
                               className="form-input"
                               value={notificationData.quietHours.endTime}
-                              onChange={(e) =>
+                            onChange={(e) =>
                                 setNotificationData({
                                   ...notificationData,
                                   quietHours: {
@@ -860,9 +860,9 @@ export default function SettingsTab({ onError }) {
                                     endTime: e.target.value,
                                   },
                                 })
-                              }
-                            />
-                          </div>
+                            }
+                          />
+                        </div>
                         )}
                       </div>
                     </div>
@@ -878,7 +878,7 @@ export default function SettingsTab({ onError }) {
                   <FiSave className="w-4 h-4" />
                   {isLoading ? "Saving..." : "Save Notification Settings"}
                 </button>
-              </div>
+                </div>
             </>
           )}
         </div>

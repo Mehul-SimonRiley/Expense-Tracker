@@ -26,29 +26,29 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-
+    
     // If the error is 401 and we haven't tried to refresh the token yet
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-
+      
       try {
         const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
-        }
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
 
         const response = await axios.post('http://localhost:5000/api/auth/refresh', {
-          refresh_token: refreshToken
-        });
-
+        refresh_token: refreshToken
+      });
+      
         const { access_token } = response.data;
         localStorage.setItem('accessToken', access_token);
-
+        
         // Retry the original request with the new token
-        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+      originalRequest.headers.Authorization = `Bearer ${access_token}`;
         return api(originalRequest);
       } catch (refreshError) {
-        console.error('Token refresh failed:', refreshError);
+      console.error('Token refresh failed:', refreshError);
         // Don't clear tokens or redirect - let the component handle the error
         return Promise.reject(error);
       }
@@ -382,13 +382,13 @@ export const settingsService = {
         }
     },
 
-    createBackup: async () => {
-        return api.post("/settings/backup");
-    },
+  createBackup: async () => {
+    return api.post("/settings/backup");
+  },
 
-    restoreBackup: async () => {
-        return api.post("/settings/restore");
-    },
+  restoreBackup: async () => {
+    return api.post("/settings/restore");
+  },
 
     async deleteAccount() {
         try {

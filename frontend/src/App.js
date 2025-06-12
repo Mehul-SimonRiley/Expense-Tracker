@@ -16,6 +16,7 @@ import { authService } from './services/auth';
 import './App.css';
 import NotificationsDropdown from './components/NotificationsDropdown';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Register from './components/Register';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -191,7 +192,7 @@ const AppContent = () => {
     return (
         <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/register" element={<Register />} />
             <Route
                 path="/"
                 element={

@@ -18,6 +18,7 @@ class User(db.Model):
     occupation = db.Column(db.String(100))
     location = db.Column(db.String(100))
     profile_picture = db.Column(db.String(200))
+    is_email_verified = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -54,6 +55,7 @@ class User(db.Model):
             'occupation': self.occupation,
             'location': self.location,
             'profile_picture': self.profile_picture,
+            'is_email_verified': self.is_email_verified,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

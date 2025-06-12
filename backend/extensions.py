@@ -5,12 +5,14 @@ from flask_migrate import Migrate
 from flask_caching import Cache
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_mail import Mail
 
 # Initialize extensions
 db = SQLAlchemy()
 jwt = JWTManager()
 cors = CORS()
 migrate = Migrate()
+mail = Mail()
 cache = Cache(config={
     'CACHE_TYPE': 'simple',
     'CACHE_DEFAULT_TIMEOUT': 300  # 5 minutes

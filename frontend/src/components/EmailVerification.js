@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
+const API_URL = 'https://traxpense.onrender.com/api';
+
 const EmailVerification = ({ email, onVerificationComplete }) => {
     const [code, setCode] = useState('');
     const [error, setError] = useState('');
@@ -12,7 +14,7 @@ const EmailVerification = ({ email, onVerificationComplete }) => {
         setError('');
 
         try {
-            const response = await axios.post('http://localhost:5000/api/auth/verify-email', {
+            const response = await axios.post(`${API_URL}/auth/verify-email`, {
                 email,
                 code
             });
@@ -32,7 +34,7 @@ const EmailVerification = ({ email, onVerificationComplete }) => {
         setError('');
 
         try {
-            await axios.post('http://localhost:5000/api/auth/resend-verification', {
+            await axios.post(`${API_URL}/auth/resend-verification`, {
                 email
             });
             alert('Verification code resent!');

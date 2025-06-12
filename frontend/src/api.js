@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = '/api'; // Update this with your backend URL
+const API_URL = 'https://traxpense.onrender.com/api';
 
 const api = axios.create({
     baseURL: API_URL,

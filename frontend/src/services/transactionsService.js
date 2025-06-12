@@ -1,6 +1,6 @@
 // frontend/src/services/transactionsAPI.js
 
-import { fetchAPI } from "./api";
+import api from "./api";
 
 // Get all transactions (optionally with filters)
 export const getAll = async (filters = {}) => {
@@ -9,17 +9,17 @@ export const getAll = async (filters = {}) => {
     if (value) queryParams.append(key, value);
   });
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : "";
-  return fetchAPI(`/transactions${queryString}`);
+  return api.get(`/transactions${queryString}`);
 };
 
 // Get a transaction by ID
 export const getById = async (id) => {
-  return fetchAPI(`/transactions/${id}`);
+  return api.get(`/transactions/${id}`);
 };
 
 // Create a new transaction
 export const create = async (transactionData) => {
-  return fetchAPI("/transactions", {
+  return api.post("/transactions", {
     method: "POST",
     body: JSON.stringify(transactionData),
   });
@@ -27,7 +27,7 @@ export const create = async (transactionData) => {
 
 // Update a transaction
 export const update = async (id, transactionData) => {
-  return fetchAPI(`/transactions/${id}`, {
+  return api.put(`/transactions/${id}`, {
     method: "PUT",
     body: JSON.stringify(transactionData),
   });
@@ -35,9 +35,7 @@ export const update = async (id, transactionData) => {
 
 // Delete a transaction
 export const remove = async (id) => {
-  return fetchAPI(`/transactions/${id}`, {
-    method: "DELETE",
-  });
+  return api.delete(`/transactions/${id}`);
 };
 
 const transactionsAPI = {

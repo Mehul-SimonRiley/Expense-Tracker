@@ -6,13 +6,13 @@ import api from './api'
 // Fetch dashboard summary
 const getSummary = async () => {
   try {
-    const response = await dashboardAPI.getSummary()
-    const data = response || {}
+    const response = await api.get('/dashboard/summary')
+    const data = response.data || {}
     return {
       totalExpenses: parseFloat(data.total_expenses || 0),
       totalIncome: parseFloat(data.total_income || 0),
       currentBalance: parseFloat(data.current_balance || 0),
-      savings: parseFloat(data.savings || 0),
+      savings: data.savings || 0,
       expenseTrend: data.expense_trend || "",
       incomeTrend: data.income_trend || "",
       balanceTrend: data.balance_trend || "",
@@ -51,8 +51,8 @@ const getBudgetStatus = async () => {
 // Fetch recent transactions
 const getRecentTransactions = async () => {
   try {
-    const response = await transactionsAPI.getAll({ limit: 5 })
-    return (response || []).map(transaction => ({
+    const response = await api.get('/transactions?limit=5')
+    return (response.data || []).map(transaction => ({
       id: transaction.id,
       description: transaction.description || '',
       amount: parseFloat(transaction.amount || 0),

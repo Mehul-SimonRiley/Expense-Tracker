@@ -4,7 +4,7 @@ const settingsService = {
     // Get all settings
     async getSettings() {
         try {
-            const response = await api.get('/api/settings');
+            const response = await api.get('/settings');
             return response.data;
         } catch (error) {
             console.error('Error fetching settings:', error);

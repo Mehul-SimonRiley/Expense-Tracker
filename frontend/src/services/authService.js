@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://expense-tracker-kfwa.onrender.com/api';
+const API_URL = 'https://traxpense.onrender.com/api';
 
 class AuthService {
     async register(userData) {

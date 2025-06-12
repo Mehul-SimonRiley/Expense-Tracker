@@ -195,16 +195,19 @@ export default function RegisterPage() {
     setErrors({})
 
     try {
-      await authService.register({
+      console.log("Attempting to register with data:", { name: formData.name, email: formData.email });
+      const response = await authService.register({
         name: formData.name,
         email: formData.email,
         password: formData.password
-      })
+      });
+      console.log("Registration API call successful, response:", response);
       toast.success("Registration successful! Please check your email for verification.")
       setTimeout(() => {
         navigate('/verify', { state: { email: formData.email } })
       }, 1000)
     } catch (err) {
+      console.error("Registration API call failed:", err);
       setErrors({
         api: err.error || "Registration failed. Please try again."
       })

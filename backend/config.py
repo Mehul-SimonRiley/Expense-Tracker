@@ -49,7 +49,10 @@ class Config:
     CORS_HEADERS = 'Content-Type'
     
     # CORS
-    CORS_ORIGINS = ['http://localhost:3000']  # Add your frontend URL
+    CORS_ORIGINS = [
+        'http://localhost:3000',
+        'https://expense-tracker-kfwa.onrender.com'
+    ]  # Add your frontend URL
     CORS_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
     CORS_ALLOW_HEADERS = ['Content-Type', 'Authorization']
     CORS_EXPOSE_HEADERS = ['Content-Type', 'Authorization']

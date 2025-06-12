@@ -41,6 +41,7 @@ const AppContent = () => {
     const { user, logout } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [activeTab, setActiveTab] = useState('dashboard');
+    const [showSettingsModal, setShowSettingsModal] = useState(false);
     const navigate = useNavigate();
 
     // Always show dashboard tab on mount (e.g., after login)
@@ -140,7 +141,7 @@ const AppContent = () => {
                     {/* Right: User avatar */}
                     <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center space-x-4 mr-4">
                         <button
-                            onClick={() => setActiveTab('settings')}
+                            onClick={() => setShowSettingsModal(true)}
                             className="flex items-center space-x-3 focus:outline-none"
                         >
                             <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
@@ -150,6 +151,25 @@ const AppContent = () => {
                     </div>
                 </div>
             </header>
+
+            {/* Settings Modal */}
+            {showSettingsModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+                    <div className="bg-white rounded-xl shadow-lg p-8 max-w-sm w-full text-center">
+                        <div className="text-lg font-semibold mb-4">Settings Tab is still under development for now.</div>
+                        <div className="text-gray-600 mb-6">Thanks for your patience.</div>
+                        <button
+                            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 focus:outline-none"
+                            onClick={() => {
+                                setShowSettingsModal(false);
+                                setActiveTab('dashboard');
+                            }}
+                        >
+                            OK
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <div className="flex">
                 {/* Sidebar */}
@@ -162,7 +182,13 @@ const AppContent = () => {
                         {tabs.map((tab) => (
                             <button
                                 key={tab.value}
-                                onClick={() => setActiveTab(tab.value)}
+                                onClick={() => {
+                                    if (tab.value === 'settings') {
+                                        setShowSettingsModal(true);
+                                    } else {
+                                        setActiveTab(tab.value);
+                                    }
+                                }}
                                 className={`${
                                     activeTab === tab.value
                                         ? 'bg-blue-50 text-blue-600'

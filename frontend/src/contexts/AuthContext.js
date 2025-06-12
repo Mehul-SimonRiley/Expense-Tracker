@@ -27,9 +27,9 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            const user = await authService.login(email, password);
-            setUser(user);
-            return user;
+            const { user: userObj } = await authService.login(email, password);
+            setUser(userObj);
+            return userObj;
         } catch (error) {
             console.error('Login error:', error);
             throw error;

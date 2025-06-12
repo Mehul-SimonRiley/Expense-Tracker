@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const API_URL = 'https://traxpense.onrender.com/api';
+const API_URL = 'https://expense-tracker-kfwa.onrender.com/api';
 
 const EmailVerification = ({ email, onVerificationComplete }) => {
     const [code, setCode] = useState('');

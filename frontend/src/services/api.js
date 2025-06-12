@@ -1,7 +1,9 @@
 import axios from "axios";
 
+const API_URL = 'http://localhost:5000/api';
+
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   }
@@ -10,7 +12,7 @@ const api = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -33,23 +35,22 @@ api.interceptors.response.use(
       
       try {
         const refreshToken = localStorage.getItem('refreshToken');
-      if (!refreshToken) {
-        throw new Error('No refresh token available');
-      }
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
 
-        const response = await axios.post('http://localhost:5000/api/auth/refresh', {
-        refresh_token: refreshToken
-      });
-      
+        const response = await axios.post(`${API_URL}/auth/refresh`, {
+          refresh_token: refreshToken
+        });
+        
         const { access_token } = response.data;
-        localStorage.setItem('accessToken', access_token);
+        localStorage.setItem('token', access_token);
         
         // Retry the original request with the new token
-      originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        originalRequest.headers.Authorization = `Bearer ${access_token}`;
         return api(originalRequest);
       } catch (refreshError) {
-      console.error('Token refresh failed:', refreshError);
-        // Don't clear tokens or redirect - let the component handle the error
+        console.error('Token refresh failed:', refreshError);
         return Promise.reject(error);
       }
     }
@@ -403,43 +404,30 @@ export const settingsService = {
 
 // Auth Service
 export const authService = {
+    async register(userData) {
+        try {
+            const response = await api.post('/auth/register', userData);
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || { error: 'Registration failed' };
+        }
+    },
+
     async login(email, password) {
         try {
             const response = await api.post('/auth/login', { email, password });
             const { access_token, refresh_token, user } = response.data;
             
-            if (!user) {
-                throw new Error('No user data received from server');
-            }
-            
-            // Store tokens and user data
-            localStorage.setItem('accessToken', access_token);
+            // Store tokens
+            localStorage.setItem('token', access_token);
             localStorage.setItem('refreshToken', refresh_token);
+            
+            // Store user data
             localStorage.setItem('user', JSON.stringify(user));
             
-            // Update default auth header
-            api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-            
-            return user;
+            return { user };
         } catch (error) {
-            console.error('Login error:', error);
-            if (error.response) {
-                throw new Error(error.response.data.message || 'Login failed');
-            }
-            throw error;
-        }
-    },
-
-    async register(name, email, password) {
-        try {
-            const response = await api.post('/auth/register', { name, email, password });
-            return response.data;
-        } catch (error) {
-            console.error('Registration error:', error);
-            if (error.response) {
-                throw new Error(error.response.data.message || 'Registration failed');
-            }
-            throw error;
+            throw error.response?.data || { error: 'Login failed' };
         }
     },
 
@@ -472,14 +460,25 @@ export const authService = {
             const response = await api.get('/auth/profile');
             return response.data;
         } catch (error) {
-            console.error('Get current user error:', error);
-            throw error;
+            throw error.response?.data || { error: 'Failed to get user profile' };
         }
     },
 
-    updateUser(userData) {
-        if (userData) {
-            localStorage.setItem('user', JSON.stringify(userData));
+    async verifyEmail(email, code) {
+        try {
+            const response = await api.post('/auth/verify-email', { email, code });
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || { error: 'Email verification failed' };
+        }
+    },
+
+    async resendVerification(email) {
+        try {
+            const response = await api.post('/auth/resend-verification', { email });
+            return response.data;
+        } catch (error) {
+            throw error.response?.data || { error: 'Failed to resend verification code' };
         }
     }
 };

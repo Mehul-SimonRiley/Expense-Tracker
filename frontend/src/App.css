@@ -1,16 +1,16 @@
 /* Base styles */
 :root {
-  --primary-color: #3b82f6;
-  --primary-hover: #2563eb;
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
   --expense-color: #ef4444;
   --income-color: #10b981;
   --savings-color: #6366f1;
   --background-color: #f9fafb;
-  --card-background: #ffffff;
+  --card-background: #fff;
   --border-color: #e5e7eb;
   --text-primary: #111827;
-  --text-secondary: #4b5563;
-  --text-muted: #6b7280;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   --housing-color: #3b82f6;
   --food-color: #10b981;

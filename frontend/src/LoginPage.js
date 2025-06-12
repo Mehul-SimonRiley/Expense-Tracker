@@ -5,6 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { FiDollarSign, FiMail, FiLock, FiUser, FiAlertCircle } from "react-icons/fi"
 import "./LoginPage.css"
+import { toast } from 'react-toastify';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -20,6 +21,7 @@ const LoginPage = () => {
             setError('');
             setLoading(true);
             await login(email, password);
+            toast.success('Login successful!');
             navigate('/');
         } catch (err) {
             console.error('Login error:', err);

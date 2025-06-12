@@ -12,25 +12,25 @@ import CalendarTab from './tabs/CalendarTab';
 import SettingsTab from './tabs/SettingsTab';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
-import { authService } from './services/auth';
-import './App.css';
-import NotificationsDropdown from './components/NotificationsDropdown';
+import Verification from './components/Verification';
+import { authService } from './services/api';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Register from './components/Register';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
-    const { user, loading } = useAuth();
+    const { isAuthenticated, loading } = useAuth();
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
         );
     }
 
-    if (!user) {
+    if (!isAuthenticated) {
         return <Navigate to="/login" />;
     }
 
@@ -38,112 +38,34 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const AppContent = () => {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const { user, logout } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [activeTab, setActiveTab] = useState('dashboard');
-    const [user, setUser] = useState(null);
     const navigate = useNavigate();
 
-    // Define a stable error handler using useCallback
-    const handleError = useCallback((error) => {
-        if (error) {
-            console.error("Global error caught:", error);
-        }
+    // Always show dashboard tab on mount (e.g., after login)
+    useEffect(() => {
+        setActiveTab('dashboard');
     }, []);
 
-    const handleLogin = useCallback((userData) => {
-        setUser(userData);
-        setIsAuthenticated(true);
-    }, []);
-
-    useEffect(() => {
-        const checkAuth = async () => {
-            try {
-                const token = localStorage.getItem('accessToken');
-                const storedUser = localStorage.getItem('user');
-                
-                if (!token || !storedUser) {
-                    setIsAuthenticated(false);
-                    setLoading(false);
-                    return;
-                }
-
-                setUser(JSON.parse(storedUser));
-                setIsAuthenticated(true);
-                setLoading(false);
-            } catch (error) {
-                console.error('Auth check failed:', error);
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('refreshToken');
-                localStorage.removeItem('user');
-                setIsAuthenticated(false);
-                handleError("Authentication check failed. Please log in again.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        checkAuth();
-    }, [handleError]);
-
-    useEffect(() => {
-        if (user) {
-            authService.updateUser(user);
-        }
-    }, [user]);
-
-    const handleLogout = () => {
+    const handleLogout = async () => {
         try {
-            authService.logout();
-            setIsAuthenticated(false);
-            setUser(null);
+            await logout();
             navigate('/login');
         } catch (error) {
             console.error('Logout error:', error);
-            handleError(error);
         }
     };
 
-    const handleUserUpdate = useCallback((updatedUser) => {
-        setUser(updatedUser);
-    }, []);
-
-    const handleTabChange = (value) => {
-        setActiveTab(value);
-    };
-
-    // Helper to get initials from name or email
     const getInitials = (user) => {
-        if (!user) return '';
-        if (user.name) {
-            const names = user.name.trim().split(' ');
-            if (names.length === 1) return names[0][0].toUpperCase();
-            return (names[0][0] + names[names.length - 1][0]).toUpperCase();
-        }
-        if (user.email) return user.email[0].toUpperCase();
-        return '';
+        if (!user?.name) return '';
+        return user.name
+            .split(' ')
+            .map(word => word[0])
+            .join('')
+            .toUpperCase();
     };
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
-        );
-    }
-
-    const renderTabContent = () => {
-        const tab = tabs.find(t => t.value === activeTab);
-        return tab ? <tab.component 
-            key={tab.value} 
-            user={user} 
-            onError={handleError}
-            onUserUpdate={handleUserUpdate}
-        /> : null; 
-    };
-
-    // Define tabs with component types instead of direct JSX elements
     const tabs = [
         {
             value: 'dashboard',
@@ -189,80 +111,108 @@ const AppContent = () => {
         }
     ];
 
+    const renderTabContent = () => {
+        const tab = tabs.find(t => t.value === activeTab);
+        return tab ? <tab.component key={tab.value} /> : null;
+    };
+
     return (
-        <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<Register />} />
-            <Route
-                path="/"
-                element={
-                    <ProtectedRoute>
-                        <div className="app">
-                            <header className="dashboard-header">
-                                <button className="menu-button" onClick={() => setSidebarOpen(!sidebarOpen)}>
-                                    <FiMenu />
-                                    <span className="sr-only">Toggle Menu</span>
-                                </button>
-                                <div className="logo" style={{ margin: '0 auto' }}>
-                                    <FiDollarSign className="logo-icon" />
-                                    <span className="logo-text">Traxpense</span>
-                                </div>
-                                <div className="header-actions">
-                                    <NotificationsDropdown />
-                                    <button
-                                        className="avatar-button"
-                                        onClick={() => setActiveTab('settings')}
-                                        title="Profile Settings"
-                                    >
-                                        <div className="avatar">
-                                            <div className="avatar-initials">
-                                                {getInitials(user) || "U"}
-                                            </div>
-                                        </div>
-                                    </button>
-                                </div>
-                            </header>
-                            <div className="dashboard-content">
-                                <aside className={`sidebar ${sidebarOpen ? '' : 'closed'}`}>
-                                    <nav className="sidebar-nav">
-                                        {tabs.map((tab) => (
-                                            <button
-                                                key={tab.value}
-                                                className={`nav-item ${activeTab === tab.value ? 'active' : ''}`}
-                                                onClick={() => handleTabChange(tab.value)}
-                                            >
-                                                {tab.icon}
-                                                <span>{tab.label}</span>
-                                            </button>
-                                        ))}
-                                        <button className="nav-item" onClick={handleLogout}>
-                                            <FiLogOut />
-                                            <span>Logout</span>
-                                        </button>
-                                    </nav>
-                                </aside>
-                                <main className="main-content">
-                                    <div className="container mx-auto px-4 py-8">
-                                        {renderTabContent()}
-                                    </div>
-                                </main>
-                            </div>
+        <div className="min-h-screen bg-gray-50">
+            {/* Header */}
+            <header className="bg-white shadow-sm relative" style={{ minHeight: '4rem' }}>
+                <div className="relative flex items-center justify-center py-4" style={{ minHeight: '4rem' }}>
+                    {/* Left: Hamburger menu */}
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center">
+                        <button
+                            onClick={() => setSidebarOpen(!sidebarOpen)}
+                            className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                        >
+                            <FiMenu className="h-6 w-6" />
+                        </button>
+                    </div>
+                    {/* Center: Logo (constrained to max-w-7xl) */}
+                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                        <div className="max-w-7xl mx-auto flex items-center">
+                            <FiDollarSign className="h-8 w-8 text-blue-600" />
+                            <span className="ml-2 text-xl font-bold text-gray-900">Traxpense</span>
                         </div>
-                    </ProtectedRoute>
-                }
-            />
-        </Routes>
+                    </div>
+                    {/* Right: User avatar */}
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center space-x-4 mr-4">
+                        <button
+                            onClick={() => setActiveTab('settings')}
+                            className="flex items-center space-x-3 focus:outline-none"
+                        >
+                            <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
+                                <span className="text-white font-medium">{getInitials(user)}</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <div className="flex">
+                {/* Sidebar */}
+                <aside
+                    className={`${
+                        sidebarOpen ? 'w-64' : 'w-20'
+                    } bg-white shadow-sm transition-all duration-300 ease-in-out`}
+                >
+                    <nav className="mt-5 px-2">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.value}
+                                onClick={() => setActiveTab(tab.value)}
+                                className={`${
+                                    activeTab === tab.value
+                                        ? 'bg-blue-50 text-blue-600'
+                                        : 'text-gray-600 hover:bg-gray-50'
+                                } group flex items-center px-2 py-2 text-base font-medium rounded-md w-full mb-1`}
+                            >
+                                {tab.icon}
+                                {sidebarOpen && <span className="ml-3">{tab.label}</span>}
+                            </button>
+                        ))}
+                        <button
+                            onClick={handleLogout}
+                            className="text-gray-600 hover:bg-gray-50 group flex items-center px-2 py-2 text-base font-medium rounded-md w-full mt-4"
+                        >
+                            <FiLogOut className="w-5 h-5" />
+                            {sidebarOpen && <span className="ml-3">Logout</span>}
+                        </button>
+                    </nav>
+                </aside>
+
+                {/* Main Content */}
+                <main className="flex-1 p-6">
+                    {renderTabContent()}
+                </main>
+            </div>
+        </div>
     );
 };
 
-const App = () => {
+function App() {
     return (
         <AuthProvider>
             <Router>
-                <AppContent />
+                <ToastContainer position="top-right" autoClose={3000} />
+                <Routes>
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/verify" element={<Verification />} />
+                    <Route
+                        path="/*"
+                        element={
+                            <ProtectedRoute>
+                                <AppContent />
+                            </ProtectedRoute>
+                        }
+                    />
+                </Routes>
             </Router>
         </AuthProvider>
     );
-};
+}
 
 export default App; 

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
-import { FiDollarSign, FiMail, FiLock, FiUser, FiAlertCircle } from "react-icons/fi"
+import { FiDollarSign, FiMail, FiLock, FiUser, FiAlertCircle, FiEye, FiEyeOff } from "react-icons/fi"
 import "./LoginPage.css"
 import { toast } from 'react-toastify';
 
@@ -12,6 +12,7 @@ const LoginPage = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
     const { login } = useAuth();
 
@@ -69,13 +70,26 @@ const LoginPage = () => {
                             <FiLock className="input-icon" />
                             Password
                         </label>
-                        <input
-                            type="password"
-                            className="form-input"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
+                        <div className="relative">
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                className="form-input"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
+                            <button
+                                type="button"
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                                onClick={() => setShowPassword(!showPassword)}
+                            >
+                                {showPassword ? (
+                                    <FiEyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                                ) : (
+                                    <FiEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                                )}
+                            </button>
+                        </div>
                     </div>
 
                     <div className="forgot-password">

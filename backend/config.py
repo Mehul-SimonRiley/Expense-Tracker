@@ -24,19 +24,30 @@ def get_database_url():
     # Fallback to SQLite for local development
     return f'sqlite:///{os.path.join(instance_path, "expense_tracker.db")}'
 
+def get_engine_options():
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url and database_url.startswith('postgres'):
+        # PostgreSQL specific options
+        return {
+            'pool_size': 10,
+            'pool_recycle': 3600,
+            'pool_pre_ping': True,
+            'connect_args': {
+                'connect_timeout': 10
+            }
+        }
+    # SQLite doesn't need these options
+    return {}
+
 class Config:
     # Flask
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key'
     DEBUG = True
     
     # Database
-    SQLALCHEMY_DATABASE_URI = get_database_url()
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', '').replace('postgres://', 'postgresql://', 1)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_size': 10,
-        'pool_recycle': 3600,
-        'pool_pre_ping': True
-    }
+    SQLALCHEMY_ENGINE_OPTIONS = get_engine_options()
     
     # JWT
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'jwt-secret-key'
@@ -107,7 +118,7 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:postgres@localhost:5432/test_db'
     WTF_CSRF_ENABLED = False
 
 class ProductionConfig(Config):

@@ -1,6 +1,7 @@
 from datetime import timedelta
 import os
 from dotenv import load_dotenv
+import re
 
 # Load environment variables from .env file
 load_dotenv()
@@ -9,15 +10,33 @@ load_dotenv()
 basedir = os.path.abspath(os.path.dirname(__file__))
 instance_path = os.path.join(basedir, 'instance')
 
+def get_database_url():
+    # Get the database URL from environment variable
+    database_url = os.environ.get('DATABASE_URL')
+    
+    if database_url:
+        # If we're using PostgreSQL (Render or Supabase)
+        if database_url.startswith('postgres://'):
+            # Convert postgres:// to postgresql://
+            database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        return database_url
+    
+    # Fallback to SQLite for local development
+    return f'sqlite:///{os.path.join(instance_path, "expense_tracker.db")}'
+
 class Config:
     # Flask
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key'
     DEBUG = True
     
     # Database
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        f'sqlite:///{os.path.join(instance_path, "expense_tracker.db")}'
+    SQLALCHEMY_DATABASE_URI = get_database_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 10,
+        'pool_recycle': 3600,
+        'pool_pre_ping': True
+    }
     
     # JWT
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'jwt-secret-key'

@@ -99,8 +99,16 @@ def get_dashboard_data():
         ).group_by(Category.name, Budget.amount).all()
 
         # Get expense trends
+        if db.engine.url.drivername == 'postgresql':
+            month_format = 'YYYY-MM'
+            date_trunc_func = func.to_char
+        else:
+            # Default for SQLite
+            month_format = '%Y-%m'
+            date_trunc_func = func.strftime
+
         expense_trends = db.session.query(
-            func.strftime('%Y-%m', Transaction.date).label('month'),
+            date_trunc_func(month_format, Transaction.date).label('month'),
             func.sum(Transaction.amount).label('total')
         ).filter(
             Transaction.user_id == user_id,

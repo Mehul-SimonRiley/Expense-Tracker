@@ -114,14 +114,6 @@ export default function CalendarTab() {
     >
       <div className="flex justify-between items-center mb-6">
         <h1 className="page-title">Financial Calendar</h1>
-        <motion.button 
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="btn btn-primary"
-        >
-          <FiPlus />
-          Add Transaction
-        </motion.button>
       </div>
 
       {/* Calendar Navigation */}
